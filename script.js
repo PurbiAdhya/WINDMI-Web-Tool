@@ -48,7 +48,6 @@ const selectors = {
   maxStep: document.getElementById("maxStep"),
   constantIc: document.getElementById("constantIc"),
   triggerPercentile: document.getElementById("triggerPercentile"),
-  normalizePlot: document.getElementById("normalizePlot"),
   interpolateMissing: document.getElementById("interpolateMissing"),
   runButton: document.getElementById("runButton"),
   downloadButton: document.getElementById("downloadButton"),
@@ -246,48 +245,129 @@ function downsampleRows(rows, maxPoints = 12000) {
 }
 
 function plotResults(rows) {
-  const outputs = selectedOutputs();
-  if (!outputs.length) {
-    setStatus("Choose at least one output to plot.", "warning");
-    return;
-  }
-
   const plotRows = downsampleRows(rows);
   const x = plotRows.map(row => row.timeISO);
-  const normalize = selectors.normalizePlot.checked;
 
-  const traces = outputs.map(name => {
-    const raw = plotRows.map(row => Number(row[name]));
-    const y = normalize ? normalized(raw) : raw;
-    return {
+  const vbs = plotRows.map(row => Number(row.Vbs));
+  const I = plotRows.map(row => Number(row.I));
+  const theta = plotRows.map(row => Number(row.Theta));
+  const I1 = plotRows.map(row => Number(row.I1));
+
+  const traces = [
+    {
       x,
-      y,
+      y: vbs,
       type: "scatter",
       mode: "lines",
-      name: normalize ? `${name} (normalized)` : name,
-      hovertemplate: "%{x}<br>%{y:.5g}<extra>%{fullData.name}</extra>"
-    };
-  });
+      name: "vB_s",
+      xaxis: "x",
+      yaxis: "y",
+      hovertemplate: "%{x}<br>vB_s: %{y:.5g}<extra></extra>"
+    },
+    {
+      x,
+      y: I,
+      type: "scatter",
+      mode: "lines",
+      name: "I",
+      xaxis: "x2",
+      yaxis: "y2",
+      hovertemplate: "%{x}<br>I: %{y:.5g}<extra></extra>"
+    },
+    {
+      x,
+      y: theta,
+      type: "scatter",
+      mode: "lines",
+      name: "Θ",
+      xaxis: "x2",
+      yaxis: "y3",
+      fill: "tozeroy",
+      fillcolor: "rgba(107, 78, 255, 0.18)",
+      line: { color: "rgba(107, 78, 255, 0.75)", width: 1.2 },
+      hovertemplate: "%{x}<br>Θ: %{y:.5g}<extra></extra>"
+    },
+    {
+      x,
+      y: I1,
+      type: "scatter",
+      mode: "lines",
+      name: "I1",
+      xaxis: "x3",
+      yaxis: "y4",
+      hovertemplate: "%{x}<br>I1: %{y:.5g}<extra></extra>"
+    }
+  ];
 
   selectors.plot.classList.remove("plot-placeholder");
   selectors.plotBadge.hidden = false;
   selectors.plotBadge.textContent = `${plotRows.length.toLocaleString()} plotted points`;
 
+  const gridColor = "rgba(120,110,96,0.18)";
+
   Plotly.newPlot(selectors.plot, traces, {
-    margin: { t: 22, r: 24, b: 54, l: 62 },
+    margin: { t: 28, r: 78, b: 58, l: 78 },
     paper_bgcolor: "rgba(255,255,255,0)",
     plot_bgcolor: "rgba(255,255,255,0.72)",
+
     xaxis: {
-      title: "UTC time",
-      gridcolor: "rgba(120,110,96,0.18)",
+      domain: [0, 1],
+      anchor: "y",
+      matches: "x3",
+      showticklabels: false,
+      gridcolor: gridColor,
       zeroline: false
     },
     yaxis: {
-      title: normalize ? "Normalized value" : "Model value",
-      gridcolor: "rgba(120,110,96,0.18)",
+      domain: [0.72, 1.00],
+      title: "vB_s",
+      gridcolor: gridColor,
       zeroline: false
     },
-    legend: { orientation: "h", y: -0.22 },
+
+    xaxis2: {
+      domain: [0, 1],
+      anchor: "y2",
+      matches: "x3",
+      showticklabels: false,
+      gridcolor: gridColor,
+      zeroline: false
+    },
+    yaxis2: {
+      domain: [0.36, 0.66],
+      title: "I",
+      gridcolor: gridColor,
+      zeroline: false
+    },
+    yaxis3: {
+      overlaying: "y2",
+      side: "right",
+      title: "Θ",
+      range: [0, 1],
+      showgrid: false,
+      zeroline: false
+    },
+
+    xaxis3: {
+      domain: [0, 1],
+      anchor: "y4",
+      title: "UTC time",
+      gridcolor: gridColor,
+      zeroline: false
+    },
+    yaxis4: {
+      domain: [0.00, 0.30],
+      title: "I1",
+      gridcolor: gridColor,
+      zeroline: false
+    },
+
+    annotations: [
+      { text: "vB_s", xref: "paper", yref: "paper", x: 0, y: 1.035, showarrow: false, xanchor: "left", font: { size: 13 } },
+      { text: "I with Θ shaded", xref: "paper", yref: "paper", x: 0, y: 0.685, showarrow: false, xanchor: "left", font: { size: 13 } },
+      { text: "I1", xref: "paper", yref: "paper", x: 0, y: 0.325, showarrow: false, xanchor: "left", font: { size: 13 } }
+    ],
+    legend: { orientation: "h", y: -0.14 },
     hovermode: "x unified"
   }, {
     responsive: true,
@@ -463,12 +543,3 @@ selectors.runButton.addEventListener("click", runModel);
 selectors.downloadButton.addEventListener("click", downloadCsv);
 selectors.clearButton.addEventListener("click", clearResult);
 
-selectors.normalizePlot.addEventListener("change", () => {
-  if (state.lastResults) plotResults(state.lastResults);
-});
-
-document.querySelectorAll(".outputs input[type='checkbox']").forEach(input => {
-  input.addEventListener("change", () => {
-    if (state.lastResults) plotResults(state.lastResults);
-  });
-});
