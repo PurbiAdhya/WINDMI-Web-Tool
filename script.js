@@ -716,12 +716,13 @@ function plotRun(run) {
   const plotDiv = document.createElement("div");
   plotDiv.className = "plot-panel combined-plot-panel";
   const rowCount = 1 + outputKeys.length;
-  plotDiv.style.height = `${Math.max(360, 150 * rowCount + 42)}px`;
+  const plotHeight = Math.max(520, 180 * rowCount + 120);
+  plotDiv.style.height = `${plotHeight}px`;
   stack.appendChild(plotDiv);
 
   const traces = [];
-  const layout = makeCombinedPlotLayout(colors, rowCount);
-  const domains = calculateYDomains(rowCount, 0.045);
+  const layout = makeCombinedPlotLayout(colors, rowCount, plotHeight);
+  const domains = calculateYDomains(rowCount, 0.075);
   const palette = [colors.navy, colors.blue, colors.purple, colors.green, colors.amber, colors.rose, colors.slate];
 
   function axisId(prefix, rowNumber) {
@@ -736,6 +737,7 @@ function plotRun(run) {
     const xKey = layoutAxisKey("x", rowNumber);
     const yKey = layoutAxisKey("y", rowNumber);
     const showXAxisTitle = rowNumber === rowCount;
+    const showXAxisTickLabels = rowNumber === rowCount;
 
     layout[xKey] = {
       ...(layout[xKey] || {}),
@@ -748,37 +750,38 @@ function plotRun(run) {
       zeroline: false,
       showline: false,
       ticks: "outside",
-      tickfont: { size: 12.5, color: colors.ink },
+      tickfont: { size: 13.5, color: colors.ink },
       automargin: true,
-      tickformat: "%H:%M<br>%b %-d, %Y",
-      showticklabels: true
+      tickformat: "%H:%M<br>%b %-d",
+      nticks: 8,
+      showticklabels: showXAxisTickLabels
     };
 
     layout[yKey] = {
       ...(layout[yKey] || {}),
       domain: domains[rowNumber - 1],
       anchor: axisId("x", rowNumber),
-      title: { text: yTitle, font: { size: 13.5, color: colors.ink } },
+      title: { text: yTitle, font: { size: 14.5, color: colors.ink } },
       showgrid: true,
       gridcolor: colors.grid,
       zeroline: false,
       showline: false,
       ticks: "outside",
-      tickfont: { size: 12.5, color: colors.ink },
+      tickfont: { size: 13.5, color: colors.ink },
       automargin: true,
       rangemode: options.rangemode || "normal"
     };
 
     layout.annotations.push({
       x: 0.5,
-      y: Math.min(1.0, domains[rowNumber - 1][1] + 0.020),
+      y: domains[rowNumber - 1][1] + 0.014,
       xref: "paper",
       yref: "paper",
       xanchor: "center",
       yanchor: "bottom",
       showarrow: false,
       text: `<b>${titleText}</b>`,
-      font: { size: 15.5, color: colors.navy }
+      font: { size: 16, color: colors.navy }
     });
   }
 
@@ -824,7 +827,7 @@ function plotRun(run) {
         zeroline: false,
         showline: false,
         ticks: "outside",
-        tickfont: { size: 12.5, color: colors.teal },
+        tickfont: { size: 13.5, color: colors.teal },
         automargin: true
       };
 
@@ -877,11 +880,13 @@ function plotRun(run) {
   if (layout.showlegend) {
     layout.legend = {
       orientation: "h",
-      x: 0,
-      y: 1.08,
-      xanchor: "left",
+      x: 0.5,
+      y: 1.17,
+      xanchor: "center",
       yanchor: "bottom",
-      font: { size: 12.5 }
+      font: { size: 13.5 },
+      bgcolor: "rgba(255,255,255,0.78)",
+      borderwidth: 0
     };
   }
 
@@ -910,15 +915,15 @@ function calculateYDomains(rowCount, gap = 0.045) {
   return domains;
 }
 
-function makeCombinedPlotLayout(colors, rowCount) {
+function makeCombinedPlotLayout(colors, rowCount, plotHeight) {
   return {
     autosize: true,
-    height: Math.max(360, 150 * rowCount + 42),
-    margin: { l: 68, r: 64, t: 36, b: 46 },
+    height: plotHeight || Math.max(520, 180 * rowCount + 120),
+    margin: { l: 78, r: 74, t: 86, b: 72 },
     paper_bgcolor: "white",
     plot_bgcolor: "white",
     hovermode: "x unified",
-    font: { family: "Inter, Arial, sans-serif", size: 13, color: colors.ink },
+    font: { family: "Inter, Arial, sans-serif", size: 14, color: colors.ink },
     annotations: [],
     showlegend: false
   };
