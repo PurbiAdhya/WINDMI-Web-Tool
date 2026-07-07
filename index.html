@@ -9,6 +9,13 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]], processEscapes: true },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -232,29 +239,29 @@
 
         <section class="card about-card" aria-labelledby="equationsHeading">
           <h2 id="equationsHeading">WINDMI equations</h2>
-          <div class="equation-list">
-            <div><span class="eq-num">(1)</span> L dI/dt = vB<sub>s</sub>(t) − V + M dI<sub>1</sub>/dt</div>
-            <div><span class="eq-num">(2)</span> C dV/dt = I − I<sub>1</sub> − I<sub>ps</sub> − ΣV</div>
-            <div><span class="eq-num">(3)</span> 3/2 dp/dt = ΣV<sup>2</sup>/Ω<sub>cps</sub> − u<sub>0</sub>pK<sub>∥</sub><sup>1/2</sup> θ(I − I<sub>c</sub>) − pVA<sub>eff</sub>/(Ω<sub>cps</sub>B<sub>tr</sub>L<sub>y</sub>) − 3p/(2τ<sub>E</sub>)</div>
-            <div><span class="eq-num">(4)</span> dK<sub>∥</sub>/dt = I<sub>ps</sub>V − K<sub>∥</sub>/τ<sub>∥</sub></div>
-            <div><span class="eq-num">(5)</span> L<sub>1</sub> dI<sub>1</sub>/dt = V − V<sub>1</sub> + M dI/dt</div>
-            <div><span class="eq-num">(6)</span> C<sub>1</sub> dV<sub>1</sub>/dt = I<sub>1</sub> − I<sub>2</sub> − Σ<sub>1</sub>V<sub>1</sub></div>
-            <div><span class="eq-num">(7)</span> L<sub>2</sub> dI<sub>2</sub>/dt = V<sub>1</sub> − (R<sub>prc</sub> + R<sub>A2</sub>)I<sub>2</sub></div>
-            <div><span class="eq-num">(8)</span> dW<sub>rc</sub>/dt = R<sub>prc</sub>I<sub>2</sub><sup>2</sup> + pVA<sub>eff</sub>/(B<sub>tr</sub>L<sub>y</sub>) − W<sub>rc</sub>/τ<sub>rc</sub></div>
+          <div class="equation-list math-equations">
+            <div><span class="eq-num">(1)</span> \[ L\frac{dI}{dt}=vB_s(t)-V+M\frac{dI_1}{dt} \]</div>
+            <div><span class="eq-num">(2)</span> \[ C\frac{dV}{dt}=I-I_1-I_{ps}-\Sigma V \]</div>
+            <div><span class="eq-num">(3)</span> \[ \frac{3}{2}\frac{dp}{dt}=\frac{\Sigma V^2}{\Omega_{cps}}-u_0pK_{\parallel}^{1/2}\theta(I-I_c)-\frac{pVA_{eff}}{\Omega_{cps}B_{tr}L_y}-\frac{3p}{2\tau_E} \]</div>
+            <div><span class="eq-num">(4)</span> \[ \frac{dK_{\parallel}}{dt}=I_{ps}V-\frac{K_{\parallel}}{\tau_{\parallel}} \]</div>
+            <div><span class="eq-num">(5)</span> \[ L_1\frac{dI_1}{dt}=V-V_1+M\frac{dI}{dt} \]</div>
+            <div><span class="eq-num">(6)</span> \[ C_1\frac{dV_1}{dt}=I_1-I_2-\Sigma_1V_1 \]</div>
+            <div><span class="eq-num">(7)</span> \[ L_2\frac{dI_2}{dt}=V_1-(R_{prc}+R_{A2})I_2 \]</div>
+            <div><span class="eq-num">(8)</span> \[ \frac{dW_{rc}}{dt}=R_{prc}I_2^2+\frac{pVA_{eff}}{B_{tr}L_y}-\frac{W_{rc}}{\tau_{rc}} \]</div>
           </div>
           <h3>Input and trigger functions</h3>
-          <div class="equation-list compact-equations">
-            <div>vB<sub>s</sub> = V<sub>0</sub> + L<sub>y</sub>|v<sub>x</sub>||B<sub>z</sub>| for B<sub>z</sub> &lt; 0; otherwise vB<sub>s</sub> = V<sub>0</sub>.</div>
-            <div>θ(I − I<sub>c</sub>) = 1/2 [1 + tanh((I − I<sub>c</sub>)/ΔI)].</div>
+          <div class="equation-list compact-equations math-equations">
+            <div><span class="eq-num">(9)</span> \[ vB_s=\begin{cases}V_0+L_y|v_x||B_z|, & B_z<0,\\ V_0, & B_z\ge 0.\end{cases} \]</div>
+            <div><span class="eq-num">(10)</span> \[ \theta(I-I_c)=\frac{1}{2}\left[1+\tanh\left(\frac{I-I_c}{\Delta I}\right)\right] \]</div>
           </div>
         </section>
 
         <section class="card about-card" aria-labelledby="papersHeading">
-          <h2 id="papersHeading">Recent and related papers</h2>
+          <h2 id="papersHeading">Recent and related papers/work</h2>
           <ol class="paper-list">
             <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2024SW003960" target="_blank" rel="noopener">Adhya, Spencer, &amp; Kayode-Adeoye — Substorm Identification With the WINDMI Magnetosphere-Ionosphere Nonlinear Physics Model</a>, <em>Space Weather</em>, 2025.</li>
             <li><a href="https://ieeexplore.ieee.org/document/10500052/" target="_blank" rel="noopener">Kayode-Adeoye et al. — Statistical Analysis of Substorm Events Using the WINDMI Model</a>, IEEE, 2024.</li>
-            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023SW003489" target="_blank" rel="noopener">Rout et al. — The Growth of Ring Current/SYM-H Under Northward IMF B<sub>z</sub></a>, <em>Space Weather</em>, 2023.</li>
+            <li><a href="https://jagworks.southalabama.edu/theses_diss/193/" target="_blank" rel="noopener">Yasmin — Geomagnetic Substorms Prediction Model Using Combined Physics-Based and Data-Driven Approaches</a>, thesis, University of South Alabama, 2024.</li>
             <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/abs/10.1029/2018JA025582" target="_blank" rel="noopener">Spencer et al. — Global Energy Dynamics During Substorms Using Satellite Observations and the WINDMI Model</a>, <em>Journal of Geophysical Research: Space Physics</em>, 2019.</li>
             <li><a href="https://link.springer.com/article/10.1186/s40623-018-0882-9" target="_blank" rel="noopener">Spencer et al. — The Dynamics of Geomagnetic Substorms With the WINDMI Model</a>, <em>Earth, Planets and Space</em>, 2018.</li>
           </ol>

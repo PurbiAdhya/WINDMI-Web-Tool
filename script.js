@@ -226,6 +226,9 @@ function showView(viewId) {
       const el = document.getElementById(id);
       if (el && window.Plotly) Plotly.Plots.resize(el);
     });
+    if (viewId === "aboutWindmiView" && window.MathJax?.typesetPromise) {
+      window.MathJax.typesetPromise([document.getElementById("aboutWindmiView")]).catch(() => {});
+    }
   }, 80);
 }
 
