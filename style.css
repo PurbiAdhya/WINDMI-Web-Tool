@@ -589,3 +589,16 @@ sub { line-height: 0; }
     height: 162px;
   }
 }
+
+/* Combined Plotly subplot canvas: avoids null DOM targets from dynamic multi-panel rendering */
+.plot-stack {
+  display: block;
+}
+.plot-panel.combined-plot-panel {
+  width: 100%;
+  min-height: 360px;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  background: #fff;
+}

@@ -679,7 +679,15 @@ function plotRun(run) {
   const rows = run.plotted;
   if (!rows.length) throw new Error("No model output rows fall inside the selected plotting interval.");
 
-  const plotTimes = rows.map(row => utcDateForPlot(row.time));
+  const stack = selectors.plotStack || document.getElementById("plotStack") || document.querySelector(".plot-stack");
+  if (!stack) {
+    throw new Error("Plot container was not found. Please replace index.html, style.css, and script.js together from the latest package.");
+  }
+  if (!window.Plotly) {
+    throw new Error("Plotly did not load. Check your internet connection or CDN access.");
+  }
+
+  const plotTimes = rows.map(row => utcPlotString(row.time));
   const utcLabels = rows.map(row => formatUtc(row.time));
   const icKA = run.solution.meta.ic / 1000;
   const vbsSmoothedKV = runningAverage(rows.map(row => row.vbs / 1000), 5);
@@ -691,7 +699,7 @@ function plotRun(run) {
 
   const colors = {
     navy: "#073763",
-    blue: "#1d5fa7",
+    blue: "#2368a2",
     teal: "#0f9fb3",
     tealFill: "rgba(15, 159, 179, 0.20)",
     orange: "#d96c13",
@@ -699,87 +707,139 @@ function plotRun(run) {
     green: "#0f766e",
     amber: "#a16207",
     rose: "#be123c",
-    slate: "#56657a",
-    grid: "#e6edf5",
+    slate: "#596579",
+    grid: "#e8eef5",
     ink: "#111827"
   };
 
-  const stack = selectors.plotStack || document.querySelector(".plot-stack");
   stack.innerHTML = "";
+  const plotDiv = document.createElement("div");
+  plotDiv.className = "plot-panel combined-plot-panel";
+  const rowCount = 1 + outputKeys.length;
+  plotDiv.style.height = `${Math.max(360, 150 * rowCount + 42)}px`;
+  stack.appendChild(plotDiv);
 
-  const config = {
-    responsive: true,
-    displaylogo: false,
-    displayModeBar: false,
-    modeBarButtonsToRemove: ["lasso2d", "select2d"]
-  };
-
-  const baseLayout = makeBasePlotLayout(colors);
-  const titleStyle = {
-    x: 0.5,
-    xanchor: "center",
-    y: 0.985,
-    yanchor: "top",
-    font: { size: 15.5, color: colors.navy }
-  };
-
-  const plotDivs = [];
-  let panelIndex = 0;
-
-  function makePanel(extraClass = "") {
-    const div = document.createElement("div");
-    div.className = `plot-panel ${extraClass}`.trim();
-    stack.appendChild(div);
-    plotDivs.push(div);
-    return div;
-  }
-
-  const vbsPanel = makePanel("input-plot-panel");
-  panelIndex += 1;
-  Plotly.react(vbsPanel, [
-    {
-      x: plotTimes,
-      y: vbsSmoothedKV,
-      customdata: utcLabels,
-      type: "scatter",
-      mode: "lines",
-      name: "5-min running average vBₛ",
-      line: { color: colors.orange, width: 2.2 },
-      hovertemplate: "%{customdata}<br>%{y:.3f} kV<extra>5-min vBₛ</extra>"
-    }
-  ], {
-    ...baseLayout,
-    title: { text: `<b>(${letterForIndex(panelIndex)}) Solar wind input vBₛ</b>`, ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: "vBₛ (kV)", font: { size: 12.5 } } }
-  }, config);
-
+  const traces = [];
+  const layout = makeCombinedPlotLayout(colors, rowCount);
+  const domains = calculateYDomains(rowCount, 0.045);
   const palette = [colors.navy, colors.blue, colors.purple, colors.green, colors.amber, colors.rose, colors.slate];
 
+  function axisId(prefix, rowNumber) {
+    return rowNumber === 1 ? prefix : `${prefix}${rowNumber}`;
+  }
+
+  function layoutAxisKey(prefix, rowNumber) {
+    return rowNumber === 1 ? `${prefix}axis` : `${prefix}axis${rowNumber}`;
+  }
+
+  function addSubplotAxes(rowNumber, yTitle, titleText, options = {}) {
+    const xKey = layoutAxisKey("x", rowNumber);
+    const yKey = layoutAxisKey("y", rowNumber);
+    const showXAxisTitle = rowNumber === rowCount;
+
+    layout[xKey] = {
+      ...(layout[xKey] || {}),
+      domain: [0, 1],
+      anchor: axisId("y", rowNumber),
+      matches: rowNumber === 1 ? undefined : "x",
+      title: showXAxisTitle ? { text: "UT", font: { size: 13, color: colors.ink } } : { text: "" },
+      showgrid: true,
+      gridcolor: colors.grid,
+      zeroline: false,
+      showline: false,
+      ticks: "outside",
+      tickfont: { size: 12.5, color: colors.ink },
+      automargin: true,
+      tickformat: "%H:%M<br>%b %-d, %Y",
+      showticklabels: true
+    };
+
+    layout[yKey] = {
+      ...(layout[yKey] || {}),
+      domain: domains[rowNumber - 1],
+      anchor: axisId("x", rowNumber),
+      title: { text: yTitle, font: { size: 13.5, color: colors.ink } },
+      showgrid: true,
+      gridcolor: colors.grid,
+      zeroline: false,
+      showline: false,
+      ticks: "outside",
+      tickfont: { size: 12.5, color: colors.ink },
+      automargin: true,
+      rangemode: options.rangemode || "normal"
+    };
+
+    layout.annotations.push({
+      x: 0.5,
+      y: Math.min(1.0, domains[rowNumber - 1][1] + 0.020),
+      xref: "paper",
+      yref: "paper",
+      xanchor: "center",
+      yanchor: "bottom",
+      showarrow: false,
+      text: `<b>${titleText}</b>`,
+      font: { size: 15.5, color: colors.navy }
+    });
+  }
+
+  addSubplotAxes(1, "vBₛ (kV)", "Solar wind input vBₛ", { rangemode: "tozero" });
+  traces.push({
+    x: plotTimes,
+    y: vbsSmoothedKV,
+    customdata: utcLabels,
+    xaxis: axisId("x", 1),
+    yaxis: axisId("y", 1),
+    type: "scatter",
+    mode: "lines",
+    name: "5-min vBₛ",
+    line: { color: colors.orange, width: 2.2 },
+    hovertemplate: "%{customdata}<br>%{y:.3f} kV<extra>5-min vBₛ</extra>"
+  });
+
   outputKeys.forEach((key, index) => {
+    const rowNumber = index + 2;
     const meta = getOutputMeta(key);
     if (!meta) return;
 
-    const div = makePanel("state-plot-panel");
-    panelIndex += 1;
     const scale = meta.scale || 1;
     const label = meta.label || key;
     const units = meta.units || "";
     const color = key === "I" ? colors.navy : palette[index % palette.length];
     const yValues = rows.map(row => row[key] * scale);
-    const traces = [];
+    const yAxisTitle = `${label}${units ? ` (${units})` : ""}`;
+    const subplotTitle = key === "I" ? "Magnetotail current I and trigger θ" : label;
+
+    addSubplotAxes(rowNumber, yAxisTitle, subplotTitle);
 
     if (key === "I") {
+      const thetaAxisNumber = rowCount + 1;
+      const thetaAxisId = axisId("y", thetaAxisNumber);
+      const thetaLayoutKey = layoutAxisKey("y", thetaAxisNumber);
+      layout[thetaLayoutKey] = {
+        title: { text: "θ", font: { size: 13.5, color: colors.teal } },
+        overlaying: axisId("y", rowNumber),
+        side: "right",
+        range: [0, 1],
+        showgrid: false,
+        zeroline: false,
+        showline: false,
+        ticks: "outside",
+        tickfont: { size: 12.5, color: colors.teal },
+        automargin: true
+      };
+
       traces.push({
         x: plotTimes,
         y: rows.map(row => row.theta),
         customdata: utcLabels,
+        xaxis: axisId("x", rowNumber),
+        yaxis: thetaAxisId,
         type: "scatter",
         mode: "lines",
         name: "θ",
-        yaxis: "y2",
         fill: "tozeroy",
         fillcolor: colors.tealFill,
-        line: { color: "rgba(15, 159, 179, 0.55)", width: 1.0 },
+        line: { color: "rgba(15, 159, 179, 0.60)", width: 1.1 },
         hovertemplate: "%{customdata}<br>θ = %{y:.3f}<extra>θ</extra>"
       });
     }
@@ -788,10 +848,12 @@ function plotRun(run) {
       x: plotTimes,
       y: yValues,
       customdata: utcLabels,
+      xaxis: axisId("x", rowNumber),
+      yaxis: axisId("y", rowNumber),
       type: "scatter",
       mode: "lines",
       name: label,
-      line: { color, width: 2.0 },
+      line: { color, width: 2.1 },
       hovertemplate: `%{customdata}<br>%{y:.4g}${units ? ` ${units}` : ""}<extra>${label}</extra>`
     });
 
@@ -800,6 +862,8 @@ function plotRun(run) {
         x: plotTimes,
         y: rows.map(() => icKA),
         customdata: utcLabels,
+        xaxis: axisId("x", rowNumber),
+        yaxis: axisId("y", rowNumber),
         type: "scatter",
         mode: "lines",
         name: "I<sub>c</sub>",
@@ -807,40 +871,57 @@ function plotRun(run) {
         hovertemplate: `%{customdata}<br>%{y:.3f} kA<extra>I<sub>c</sub></extra>`
       });
     }
-
-    const yAxisTitle = `${label}${units ? ` (${units})` : ""}`;
-    const layout = {
-      ...baseLayout,
-      title: { text: `<b>(${letterForIndex(panelIndex)}) ${label}</b>`, ...titleStyle },
-      yaxis: { ...baseLayout.yaxis, title: { text: yAxisTitle, font: { size: 12.5 } } },
-      showlegend: key === "I"
-    };
-
-    if (key === "I") {
-      layout.title = { text: `<b>(${letterForIndex(panelIndex)}) Magnetotail current I and trigger θ</b>`, ...titleStyle };
-      layout.yaxis2 = {
-        title: { text: "θ", font: { size: 12.5, color: colors.teal } },
-        overlaying: "y",
-        side: "right",
-        range: [0, 1],
-        showgrid: false,
-        zeroline: false,
-        showline: false,
-        mirror: false,
-        ticks: "outside",
-        tickfont: { size: 11.5, color: colors.teal },
-        automargin: true
-      };
-      layout.legend = { orientation: "h", x: 0, y: 1.18, font: { size: 11.5 } };
-    }
-
-    Plotly.react(div, traces, layout, config);
   });
+
+  layout.showlegend = outputKeys.includes("I");
+  if (layout.showlegend) {
+    layout.legend = {
+      orientation: "h",
+      x: 0,
+      y: 1.08,
+      xanchor: "left",
+      yanchor: "bottom",
+      font: { size: 12.5 }
+    };
+  }
+
+  const config = {
+    responsive: true,
+    displaylogo: false,
+    displayModeBar: false,
+    modeBarButtonsToRemove: ["lasso2d", "select2d"]
+  };
+
+  Plotly.react(plotDiv, traces, layout, config);
 
   selectors.runSummary.innerHTML = "";
   selectors.runSummary.classList.add("hidden");
+}
 
-  attachPlotSync(plotDivs);
+function calculateYDomains(rowCount, gap = 0.045) {
+  const usable = 1 - gap * (rowCount - 1);
+  const rowHeight = usable / rowCount;
+  const domains = [];
+  for (let index = 0; index < rowCount; index += 1) {
+    const top = 1 - index * (rowHeight + gap);
+    const bottom = top - rowHeight;
+    domains.push([Math.max(0, bottom), Math.min(1, top)]);
+  }
+  return domains;
+}
+
+function makeCombinedPlotLayout(colors, rowCount) {
+  return {
+    autosize: true,
+    height: Math.max(360, 150 * rowCount + 42),
+    margin: { l: 68, r: 64, t: 36, b: 46 },
+    paper_bgcolor: "white",
+    plot_bgcolor: "white",
+    hovermode: "x unified",
+    font: { family: "Inter, Arial, sans-serif", size: 13, color: colors.ink },
+    annotations: [],
+    showlegend: false
+  };
 }
 
 function makeBasePlotLayout(colors) {
@@ -880,6 +961,11 @@ function makeBasePlotLayout(colors) {
 
 function letterForIndex(index) {
   return String.fromCharCode(96 + index);
+}
+
+function utcPlotString(date) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
 }
 
 function utcDateForPlot(date) {
