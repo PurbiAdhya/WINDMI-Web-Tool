@@ -1,223 +1,520 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WINDMI Web Tool</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
-  <link rel="apple-touch-icon" href="assets/icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root{
+      --blue:#062f66;
+      --blue2:#0b4f9c;
+      --teal:#08aabd;
+      --orange:#f5821f;
+      --bg:#f7f9fc;
+      --card:#ffffff;
+      --line:#d8e0ea;
+      --muted:#667085;
+      --text:#111827;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    .app{display:flex;min-height:100vh;width:100%}
+    aside{width:245px;background:#fff;border-right:1px solid var(--line);padding:24px 18px;position:sticky;top:0;height:100vh}
+    .wordmark{font-size:44px;line-height:1;font-weight:700;letter-spacing:.5px;margin:4px 0 8px;color:var(--blue)}
+    .wordmark .mi{color:var(--teal)}
+    .tool-name{font-weight:700;color:#12213d;margin-bottom:28px}
+    nav a{display:block;text-decoration:none;color:#17233c;padding:12px 14px;border-radius:8px;margin:4px 0;font-size:15px}
+    nav a:hover, nav a.active{background:#eaf2fb;color:var(--blue);font-weight:700}
+    .note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:26px}
+    main{flex:1;padding:28px;max-width:none}
+    header h1{margin:0 0 6px;color:var(--blue);font-size:32px}
+    header p{margin:0 0 22px;color:var(--muted)}
+    section{scroll-margin-top:18px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+    .card h2{margin:0 0 6px;color:var(--blue);font-size:20px}
+    .card h3{margin:0 0 12px;color:var(--blue);font-size:16px}
+    .card p{margin:0 0 14px;color:var(--muted)}
+    .run-grid{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:20px}
+    .panel{border-right:1px solid var(--line);padding-right:20px}
+    .panel:last-child{border-right:0;padding-right:0}
+    .field{margin-bottom:14px}
+    label, legend{font-weight:600;font-size:14px;color:#1f2937}
+    input, select{width:100%;margin-top:6px;padding:10px 11px;border:1px solid #c7d2df;border-radius:7px;background:#fff;font-size:14px}
+    input[type="radio"], input[type="checkbox"]{width:auto;margin-right:8px}
+    .radio-line{display:flex;align-items:flex-start;gap:8px;margin:11px 0;font-weight:400}
+    .radio-line strong{display:block;font-size:14px}
+    .radio-line small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
+    .inline{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px;margin:6px 0 10px 28px}
+    .quick-grid,.param-grid,.initial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
+    .buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    button{border:0;border-radius:8px;padding:11px 16px;font-weight:700;cursor:pointer;background:var(--blue);color:white;font-size:14px}
+    button.secondary{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+    button.ghost{background:#eef2f7;color:#1f2937}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .status{margin-top:14px;padding:10px 12px;border-radius:8px;background:#eef6ff;color:#19436d;font-size:14px;white-space:pre-wrap}
+    .status.error{background:#fff1f0;color:#9f1d1d}
+    .status.ok{background:#edfdf3;color:#166534}
+    .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+    details summary{cursor:pointer;color:var(--blue);font-size:18px;font-weight:700}
+    .plot-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+    .plot-title{font-weight:700;color:var(--blue);margin:4px 0 6px}
+    .plot{height:240px;width:100%}
+    .small{font-size:12px;color:var(--muted)}
+    .hidden{display:none!important}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:900px){.app{display:block}aside{position:relative;width:100%;height:auto}.run-grid,.two-col{grid-template-columns:1fr}.panel{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:16px}.panel:last-child{border-bottom:0}.wordmark{font-size:36px}main{padding:16px}}
+  </style>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="WINDMI navigation">
-      <a class="brand" href="#runSection" aria-label="WINDMI Web Tool home">
-        <img src="assets/windmi-wordmark.png" alt="WINDMI" class="brand-logo" />
-        <span class="brand-title">WINDMI Web Tool</span>
-      </a>
+<div class="app">
+  <aside>
+    <div class="wordmark">wind<span class="mi">mi</span></div>
+    <div class="tool-name">WINDMI Web Tool</div>
+    <nav id="nav">
+      <a href="#run" class="active">Run WINDMI</a>
+      <a href="#trigger">Trigger Settings</a>
+      <a href="#model">Model Parameters</a>
+      <a href="#initial">Initial Conditions</a>
+      <a href="#data">Data Source</a>
+      <a href="#plots">Plots</a>
+    </nav>
+    <div class="note">Simple workflow: select a UTC date range, choose trigger mode, run, plot. Most users can leave configuration unchanged.</div>
+  </aside>
 
-      <nav class="side-nav">
-        <a class="active" href="#runSection">Run WINDMI</a>
-        <a href="#triggerSection">Trigger Settings</a>
-        <a href="#modelParametersSection">Model Parameters</a>
-        <a href="#initialConditionsSection">Initial Conditions</a>
-        <a href="#dataSourceSection">Data Source</a>
-        <a href="#plotOptionsSection">Plot Options</a>
-      </nav>
+  <main>
+    <header>
+      <h1>Run WINDMI</h1>
+      <p>Select a date range, run the WINDMI model, and inspect the output plots.</p>
+    </header>
 
-      <p class="sidebar-note">Select a UTC range, run the model, then adjust parameters only when needed.</p>
-    </aside>
-
-    <main class="main-content">
-      <section id="setupPage" class="page active">
-        <header class="page-header">
-          <p class="eyebrow">Browser-based solver</p>
-          <h1>Run WINDMI</h1>
-          <p>Select a date range, choose a trigger setting, and generate output plots from OMNI data.</p>
-        </header>
-
-        <section id="runSection" class="card run-card" aria-labelledby="runHeading">
-          <div class="card-title-row">
-            <div>
-              <h2 id="runHeading">Main run settings</h2>
-              <p>These are the settings most users need for a standard run.</p>
-            </div>
+    <section id="run" class="card">
+      <h2>Main run settings</h2>
+      <p>Use these controls for a standard run.</p>
+      <div class="run-grid">
+        <div class="panel">
+          <h3>1. Date range</h3>
+          <div class="field">
+            <label for="startTime">Start date and time, UTC</label>
+            <input id="startTime" type="datetime-local">
           </div>
-
-          <div class="primary-grid">
-            <section class="panel-section" aria-labelledby="dateHeading">
-              <h3 id="dateHeading">1. Data range</h3>
-              <div class="field">
-                <label for="startTime">Start date and time (UTC)</label>
-                <input id="startTime" type="datetime-local" />
-              </div>
-              <div class="field">
-                <label for="endTime">End date and time (UTC)</label>
-                <input id="endTime" type="datetime-local" />
-              </div>
-            </section>
-
-            <section id="triggerSection" class="panel-section" aria-labelledby="triggerHeading">
-              <h3 id="triggerHeading">2. Trigger settings</h3>
-              <fieldset class="radio-stack">
-                <legend class="sr-only">Trigger mode</legend>
-                <label class="radio-line">
-                  <input type="radio" name="icModeRadio" value="off" checked />
-                  <span>
-                    <strong>Trigger off</strong>
-                    <small>Sets I<sub>c</sub> = 1e8 so the trigger never turns on.</small>
-                  </span>
-                </label>
-
-                <label class="radio-line">
-                  <input type="radio" name="icModeRadio" value="constant" />
-                  <span>
-                    <strong>Constant I<sub>c</sub></strong>
-                    <small>Use the same threshold throughout the run.</small>
-                  </span>
-                </label>
-                <div class="inline-input">
-                  <label for="icConstant">I<sub>c</sub> (A)</label>
-                  <input id="icConstant" type="number" step="1000" value="20000000" />
-                </div>
-
-                <label class="radio-line">
-                  <input type="radio" name="icModeRadio" value="percentile" />
-                  <span>
-                    <strong>Variable I<sub>c</sub></strong>
-                    <small>Calculate I<sub>c</sub> from a prepass percentile.</small>
-                  </span>
-                </label>
-                <div class="inline-input">
-                  <label for="icPercentile">Percentile</label>
-                  <input id="icPercentile" type="number" min="0" max="100" step="1" value="70" />
-                </div>
-              </fieldset>
-            </section>
-
-            <section class="panel-section" aria-labelledby="quickHeading">
-              <h3 id="quickHeading">3. Quick parameters</h3>
-              <p class="hint">Spinner steps are 10% of the nominal value.</p>
-              <div id="quickParameterGrid" class="quick-parameter-grid"></div>
-            </section>
+          <div class="field">
+            <label for="endTime">End date and time, UTC</label>
+            <input id="endTime" type="datetime-local">
           </div>
-
-          <div class="button-row">
-            <button id="runBtn" type="button">Run and Plot</button>
-            <button id="resetParamsBtn" class="secondary" type="button">Reset to Nominal Parameters</button>
-            <button id="resetDefaultsBtn" class="ghost" type="button">Reset all setup</button>
+          <div class="field">
+            <label><input type="radio" name="dataSource" value="repo" checked> Use built-in yearly files</label><br>
+            <label><input type="radio" name="dataSource" value="upload"> Upload CSV file</label>
           </div>
-
-          <div id="statusBox" class="status neutral">Ready.</div>
-        </section>
-
-        <section id="dataSourceSection" class="card" aria-labelledby="dataSourceHeading">
-          <div class="card-title-row">
-            <div>
-              <h2 id="dataSourceHeading">Data source</h2>
-              <p>Use yearly OMNI files in the repository or upload one CSV manually.</p>
-            </div>
+          <div id="uploadBox" class="field hidden">
+            <label for="fileInput">OMNI CSV file</label>
+            <input id="fileInput" type="file" accept=".csv,.txt">
           </div>
+        </div>
 
-          <div class="secondary-grid">
-            <fieldset class="field radio-card">
-              <legend>OMNI data source</legend>
-              <label><input type="radio" name="dataSource" value="repo" checked /> Built-in yearly files from repository</label>
-              <label><input type="radio" name="dataSource" value="upload" /> Upload one OMNI CSV file</label>
-            </fieldset>
-
-            <div class="field" id="uploadFieldWrap">
-              <label for="fileInput">OMNI CSV file input</label>
-              <input id="fileInput" type="file" accept=".csv,.txt" />
-              <p class="hint">Used only when upload mode is selected.</p>
-            </div>
-
-            <div class="field">
-              <label for="spinupHours">Spin-up before start (hours)</label>
-              <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2" />
-              <p class="hint">Near Jan 1, spin-up may load the previous year too.</p>
-            </div>
-
-            <div class="field wide-field">
-              <label for="dataPathPattern">Built-in data path pattern</label>
-              <input id="dataPathPattern" type="text" value="data/omni_{year}.csv" />
-            </div>
+        <div id="trigger" class="panel">
+          <h3>2. Trigger settings</h3>
+          <label class="radio-line">
+            <input type="radio" name="icMode" value="off" checked>
+            <span><strong>Trigger off</strong><small>Sets I<sub>c</sub> = 1e8, so the trigger never turns on.</small></span>
+          </label>
+          <label class="radio-line">
+            <input type="radio" name="icMode" value="constant">
+            <span><strong>Constant I<sub>c</sub></strong><small>Use one fixed threshold.</small></span>
+          </label>
+          <div class="inline">
+            <label for="icConstant">I<sub>c</sub> (A)</label>
+            <input id="icConstant" type="number" step="1000" value="20000000">
           </div>
-        </section>
-
-        <section id="modelParametersSection" class="card" aria-labelledby="modelHeading">
-          <div class="card-title-row">
-            <div>
-              <h2 id="modelHeading">Model parameters</h2>
-              <p>Full parameter list. The quick L, C, and Sigma controls above stay synchronized with this list.</p>
-            </div>
+          <label class="radio-line">
+            <input type="radio" name="icMode" value="variable">
+            <span><strong>Variable I<sub>c</sub></strong><small>Run a prepass and set I<sub>c</sub> from the selected percentile of I.</small></span>
+          </label>
+          <div class="inline">
+            <label for="icPercentile">Percentile</label>
+            <input id="icPercentile" type="number" min="0" max="100" step="1" value="70">
           </div>
-          <div id="parameterGrid" class="parameter-grid"></div>
-        </section>
+        </div>
 
-        <section id="initialConditionsSection" class="card" aria-labelledby="initialHeading">
-          <details>
-            <summary>
-              <span>
-                <strong id="initialHeading">Initial conditions</strong>
-                <small>Most users can leave these unchanged.</small>
-              </span>
-            </summary>
-            <p class="hint">These are editable because the original Simulink initial state was not included with the MATLAB script.</p>
-            <div id="initialGrid" class="parameter-grid"></div>
-          </details>
-        </section>
+        <div class="panel">
+          <h3>3. Quick parameters</h3>
+          <p class="small">Spinner steps are 10% of nominal.</p>
+          <div id="quickParams" class="quick-grid"></div>
+        </div>
+      </div>
+      <div class="buttons">
+        <button id="runBtn">Run WINDMI</button>
+        <button id="resetParams" class="secondary">Reset to nominal parameters</button>
+        <button id="exportBtn" class="ghost" disabled>Export output CSV</button>
+      </div>
+      <div id="status" class="status">Ready.</div>
+    </section>
 
-        <section id="plotOptionsSection" class="card" aria-labelledby="plotOptionsHeading">
-          <div class="card-title-row">
-            <div>
-              <h2 id="plotOptionsHeading">Plot options and data handling</h2>
-              <p>The default output is three separate linked panels: vB<sub>s</sub>, I with shaded θ, and I<sub>1</sub>.</p>
-            </div>
-          </div>
+    <section id="plots" class="card">
+      <h2>Plots</h2>
+      <p>I and I<sub>1</sub> are not normalized. The middle panel uses θ as a shaded right-axis quantity.</p>
+      <div class="plot-wrap"><div class="plot-title">vB<sub>s</sub></div><div id="plotVbs" class="plot"></div></div>
+      <div class="plot-wrap"><div class="plot-title">I and θ</div><div id="plotITheta" class="plot"></div></div>
+      <div class="plot-wrap"><div class="plot-title">I<sub>1</sub></div><div id="plotI1" class="plot"></div></div>
+    </section>
 
-          <div class="secondary-grid">
-            <label class="checkbox-line">
-              <input id="interpolateMissing" type="checkbox" checked />
-              Interpolate short gaps
-            </label>
-            <div class="field">
-              <label for="maxGapMinutes">Maximum gap to interpolate (minutes)</label>
-              <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30" />
-            </div>
-          </div>
-        </section>
-      </section>
+    <section id="model" class="card">
+      <h2>Model parameters</h2>
+      <p>Most users can leave these at nominal values. L, C, and Σ are also shown in Quick Parameters.</p>
+      <div id="paramGrid" class="param-grid"></div>
+    </section>
 
-      <section id="plotPage" class="page">
-        <section class="card plot-card">
-          <div class="plot-header">
-            <div>
-              <p class="eyebrow">WINDMI output</p>
-              <h1>Model result plots</h1>
-              <p>Three linked plots. I and I<sub>1</sub> are not normalized.</p>
-            </div>
-            <div class="plot-actions">
-              <button id="backToSetupBtn" class="secondary" type="button">Set conditions again and run</button>
-              <button id="exportBtn" class="secondary" type="button" disabled>Export plotted output CSV</button>
-            </div>
-          </div>
+    <section id="initial" class="card">
+      <details>
+        <summary>Initial conditions</summary>
+        <p class="small">Most users should leave these unchanged.</p>
+        <div id="initialGrid" class="initial-grid"></div>
+      </details>
+    </section>
 
-          <div id="runSummary" class="run-summary">No run yet.</div>
+    <section id="data" class="card">
+      <h2>Data source and handling</h2>
+      <div class="settings-grid">
+        <div class="field">
+          <label for="dataPattern">Yearly data path pattern</label>
+          <input id="dataPattern" type="text" value="data/omni_{year}.csv">
+          <div class="small">Example: data/omni_2000.csv</div>
+        </div>
+        <div class="field">
+          <label for="spinupHours">Spin-up before start, hours</label>
+          <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2">
+        </div>
+        <div class="field">
+          <label><input id="interpolateMissing" type="checkbox" checked> Interpolate short gaps</label>
+        </div>
+        <div class="field">
+          <label for="maxGapMinutes">Maximum gap to interpolate, minutes</label>
+          <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30">
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
 
-          <div class="plot-stack">
-            <div id="plotVbs" class="plot-panel"></div>
-            <div id="plotITheta" class="plot-panel"></div>
-            <div id="plotI1" class="plot-panel"></div>
-          </div>
-        </section>
-      </section>
-    </main>
-  </div>
+<script>
+const DEFAULT_PARAMS = {
+  L: 90, L1: 20, L2: 8, Ly: 3.2e7, C: 50000, C1: 800,
+  Rprc: 0.1, RA2: 0.3, M: 0.1, deltaI: 1.25e5,
+  sigma: 8, sigma1: 3, mu0: 4.2e-9, Aeff: 8.14e13,
+  Btr: 5e-9, omegaCps: 2.6e24, tauE: 30*60,
+  tauParallel: 10*60, tauRc: 12*3600, alpha: 8e11,
+  v0: 4000, vbsLyRE: 10, earthRadiusMeters: 6380e3
+};
+const PARAM_META = [
+  ['L','L',''], ['L1','L₁',''], ['L2','L₂',''], ['Ly','Lᵧ','m'],
+  ['C','C',''], ['C1','C₁',''], ['Rprc','Rprc',''], ['RA2','RA2',''],
+  ['M','M',''], ['deltaI','ΔI','A'], ['sigma','Σ',''], ['sigma1','Σ₁',''],
+  ['mu0','μ₀',''], ['Aeff','Aeff','m²'], ['Btr','Btr','T'], ['omegaCps','Ωcps',''],
+  ['tauE','τE','s'], ['tauParallel','τ∥','s'], ['tauRc','τrc','s'], ['alpha','α',''],
+  ['v0','V₀','V'], ['vbsLyRE','vBs Ly','RE'], ['earthRadiusMeters','RE','m']
+];
+const DEFAULT_INITIAL = { I:0, V:0, p:0, K:0, I1:0, V1:0, I2:0, Wrc:0 };
+const INITIAL_META = [['I','I','A'],['V','V','V'],['p','p',''],['K','K∥',''],['I1','I₁','A'],['V1','V₁','V'],['I2','I₂','A'],['Wrc','Wrc','J']];
+let latestOutput = null;
 
-  <script src="windmi.js"></script>
-  <script src="script.js"></script>
+window.addEventListener('DOMContentLoaded', init);
+function init(){
+  buildParamInputs();
+  buildInitialInputs();
+  setDefaultDates();
+  document.getElementById('runBtn').addEventListener('click', runModel);
+  document.getElementById('resetParams').addEventListener('click', resetParams);
+  document.getElementById('exportBtn').addEventListener('click', exportCsv);
+  document.querySelectorAll('input[name="dataSource"]').forEach(r => r.addEventListener('change', updateUploadVisibility));
+  document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', () => setActiveNav(a)));
+  updateUploadVisibility();
+  emptyPlots();
+}
+function setActiveNav(active){ document.querySelectorAll('nav a').forEach(a => a.classList.toggle('active', a===active)); }
+function status(msg, kind='neutral'){
+  const box = document.getElementById('status');
+  box.textContent = msg;
+  box.className = 'status' + (kind === 'error' ? ' error' : kind === 'ok' ? ' ok' : '');
+}
+function stepOf(v){ const n=Math.abs(Number(v)); return (!Number.isFinite(n)||n===0) ? '1' : Number((n*0.1).toPrecision(12)).toString(); }
+function buildParamInputs(){
+  const full = document.getElementById('paramGrid');
+  const quick = document.getElementById('quickParams');
+  full.innerHTML=''; quick.innerHTML='';
+  const quickKeys = new Set(['L','C','sigma']);
+  for(const [key,label,unit] of PARAM_META){
+    const step = stepOf(DEFAULT_PARAMS[key]);
+    const node = document.createElement('div');
+    node.className = 'field';
+    node.innerHTML = `<label>${label}${unit ? ' ('+unit+')' : ''}</label><input data-param="${key}" type="number" step="${step}" value="${DEFAULT_PARAMS[key]}">`;
+    full.appendChild(node);
+    if(quickKeys.has(key)){
+      const q = document.createElement('div');
+      q.className = 'field';
+      q.innerHTML = `<label>${label}${unit ? ' ('+unit+')' : ''}</label><input data-quick="${key}" type="number" step="${step}" value="${DEFAULT_PARAMS[key]}">`;
+      quick.appendChild(q);
+    }
+  }
+  document.querySelectorAll('[data-quick]').forEach(inp => inp.addEventListener('input', e => {
+    const key=e.target.dataset.quick; const other=document.querySelector(`[data-param="${key}"]`); if(other) other.value=e.target.value;
+  }));
+  document.querySelectorAll('[data-param]').forEach(inp => inp.addEventListener('input', e => {
+    const key=e.target.dataset.param; const other=document.querySelector(`[data-quick="${key}"]`); if(other) other.value=e.target.value;
+  }));
+}
+function buildInitialInputs(){
+  const grid = document.getElementById('initialGrid'); grid.innerHTML='';
+  for(const [key,label,unit] of INITIAL_META){
+    const node = document.createElement('div');
+    node.className = 'field';
+    node.innerHTML = `<label>${label}${unit ? ' ('+unit+')' : ''}</label><input data-initial="${key}" type="number" step="any" value="${DEFAULT_INITIAL[key]}">`;
+    grid.appendChild(node);
+  }
+}
+function resetParams(){
+  document.querySelectorAll('[data-param]').forEach(inp => inp.value = DEFAULT_PARAMS[inp.dataset.param]);
+  document.querySelectorAll('[data-quick]').forEach(inp => inp.value = DEFAULT_PARAMS[inp.dataset.quick]);
+  status('Reset to nominal parameters.');
+}
+function setDefaultDates(){
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
+  const end = new Date(start.getTime() + 24*3600*1000);
+  document.getElementById('startTime').value = toInputUtc(start);
+  document.getElementById('endTime').value = toInputUtc(end);
+}
+function toInputUtc(d){
+  const p=n=>String(n).padStart(2,'0');
+  return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+function parseUtcInput(v){ if(!v) return null; const d=new Date(v + ':00Z'); return Number.isNaN(d.getTime()) ? null : d; }
+function updateUploadVisibility(){
+  const src = document.querySelector('input[name="dataSource"]:checked').value;
+  document.getElementById('uploadBox').classList.toggle('hidden', src !== 'upload');
+}
+function collectParams(){ const p={...DEFAULT_PARAMS}; document.querySelectorAll('[data-param]').forEach(i => p[i.dataset.param]=Number(i.value)); return p; }
+function collectInitial(){ const s={...DEFAULT_INITIAL}; document.querySelectorAll('[data-initial]').forEach(i => s[i.dataset.initial]=Number(i.value)); return s; }
+function selectedIcMode(){ return document.querySelector('input[name="icMode"]:checked').value; }
+
+async function runModel(){
+  try{
+    document.getElementById('runBtn').disabled=true;
+    document.getElementById('exportBtn').disabled=true;
+    latestOutput=null;
+    const start = parseUtcInput(document.getElementById('startTime').value);
+    const end = parseUtcInput(document.getElementById('endTime').value);
+    if(!start || !end || end <= start) throw new Error('Enter a valid UTC start/end range.');
+    const spinup = Math.max(0, Number(document.getElementById('spinupHours').value) || 0);
+    const modelStart = new Date(start.getTime() - spinup*3600*1000);
+    const params = collectParams();
+    const initial = collectInitial();
+    status('Loading OMNI data...');
+    const rows = await loadData(modelStart, end, params);
+    if(rows.length < 2) throw new Error('Not enough valid OMNI rows in the selected range.');
+    status(`Loaded ${rows.length.toLocaleString()} OMNI rows. Running WINDMI...`);
+    const outputAll = solveWindmi(rows, {params, initial, mode:selectedIcMode(), constantIc:Number(document.getElementById('icConstant').value), percentile:Number(document.getElementById('icPercentile').value)});
+    latestOutput = outputAll.filter(r => r.time >= start && r.time <= end);
+    if(latestOutput.length < 2) throw new Error('Model ran, but no output rows are inside the requested plotting range.');
+    makePlots(latestOutput);
+    document.getElementById('exportBtn').disabled=false;
+    status(`Done. Plotted ${latestOutput.length.toLocaleString()} output rows. I_c = ${formatSci(latestOutput[0].Ic)} A.`, 'ok');
+    document.getElementById('plots').scrollIntoView({behavior:'smooth'});
+  }catch(err){
+    console.error(err);
+    status(err.message || String(err), 'error');
+  }finally{
+    document.getElementById('runBtn').disabled=false;
+  }
+}
+async function loadData(modelStart, end, params){
+  const src = document.querySelector('input[name="dataSource"]:checked').value;
+  if(src === 'upload'){
+    const file = document.getElementById('fileInput').files[0];
+    if(!file) throw new Error('Choose an OMNI CSV file or switch to built-in yearly files.');
+    const text = await file.text();
+    return parseOmniCsv(text, modelStart, end, params);
+  }
+  const years = yearsNeeded(modelStart, end);
+  let rows=[];
+  const pattern = document.getElementById('dataPattern').value || 'data/omni_{year}.csv';
+  for(const y of years){
+    const path = pattern.replace('{year}', y);
+    status(`Loading ${path}...`);
+    const resp = await fetch(path);
+    if(!resp.ok) throw new Error(`Could not load ${path}. Check that the file exists and is named correctly.`);
+    const text = await resp.text();
+    rows = rows.concat(parseOmniCsv(text, modelStart, end, params));
+  }
+  rows.sort((a,b)=>a.time-b.time);
+  return cleanRows(rows);
+}
+function yearsNeeded(a,b){ const arr=[]; for(let y=a.getUTCFullYear(); y<=b.getUTCFullYear(); y++) arr.push(y); return arr; }
+function parseOmniCsv(text, start, end, params){
+  const parsed = Papa.parse(text, {header:true, dynamicTyping:true, skipEmptyLines:true});
+  if(parsed.errors && parsed.errors.length) console.warn(parsed.errors.slice(0,3));
+  const fields = parsed.meta.fields || [];
+  const keys = {
+    time: findCol(fields, ['epoch','time','date']),
+    bz: findCol(fields, ['bz']),
+    vx: findCol(fields, ['vx','velocity'])
+  };
+  if(!keys.time || !keys.bz || !keys.vx) throw new Error('Could not find time, Bz, and Vx columns in the OMNI file.');
+  const rows=[];
+  for(const raw of parsed.data){
+    const t = parseOmniTime(raw[keys.time]);
+    if(!t || t < start || t > end) continue;
+    let bz = Number(raw[keys.bz]);
+    let vx = Number(raw[keys.vx]);
+    if(!Number.isFinite(bz) || Math.abs(bz) >= 9999) bz = NaN;
+    if(!Number.isFinite(vx) || Math.abs(vx) >= 99999) vx = NaN;
+    rows.push({time:t, bz, vx});
+  }
+  rows.sort((a,b)=>a.time-b.time);
+  if(document.getElementById('interpolateMissing').checked){
+    const maxGap = (Number(document.getElementById('maxGapMinutes').value)||30)*60*1000;
+    interpolate(rows, 'bz', maxGap);
+    interpolate(rows, 'vx', maxGap);
+  }
+  for(const r of rows) r.vbs = computeVbs(r.bz, r.vx, params);
+  return cleanRows(rows);
+}
+function cleanRows(rows){
+  const seen = new Set();
+  const out=[];
+  for(const r of rows){
+    const key=r.time.getTime();
+    if(seen.has(key)) continue;
+    seen.add(key);
+    if(Number.isFinite(r.bz) && Number.isFinite(r.vx) && Number.isFinite(r.vbs)) out.push(r);
+  }
+  return out.sort((a,b)=>a.time-b.time);
+}
+function findCol(fields, needles){
+  const lower = fields.map(f => [f, String(f).toLowerCase()]);
+  for(const n of needles){
+    const hit = lower.find(([orig,lo]) => lo.includes(n));
+    if(hit) return hit[0];
+  }
+  return null;
+}
+function parseOmniTime(v){
+  if(v instanceof Date && !Number.isNaN(v.getTime())) return v;
+  if(typeof v !== 'string') return null;
+  let d = new Date(v);
+  if(!Number.isNaN(d.getTime())) return d;
+  const m = v.match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if(m){ d = new Date(Date.UTC(+m[3], +m[2]-1, +m[1], +m[4], +m[5], +m[6])); return Number.isNaN(d.getTime()) ? null : d; }
+  return null;
+}
+function interpolate(rows, field, maxGapMs){
+  let i=0;
+  while(i < rows.length){
+    if(Number.isFinite(rows[i][field])){ i++; continue; }
+    const startMissing=i;
+    while(i<rows.length && !Number.isFinite(rows[i][field])) i++;
+    const endMissing=i-1;
+    const before=startMissing-1, after=i;
+    if(before < 0 || after >= rows.length) continue;
+    if(!Number.isFinite(rows[before][field]) || !Number.isFinite(rows[after][field])) continue;
+    const gap = rows[after].time - rows[before].time;
+    if(gap > maxGapMs) continue;
+    const y0=rows[before][field], y1=rows[after][field], t0=rows[before].time.getTime(), t1=rows[after].time.getTime();
+    for(let j=startMissing; j<=endMissing; j++){
+      const f = (rows[j].time.getTime()-t0)/(t1-t0);
+      rows[j][field] = y0 + f*(y1-y0);
+    }
+  }
+}
+function computeVbs(bz, vx, p){
+  if(!Number.isFinite(bz)||!Number.isFinite(vx)) return NaN;
+  if(bz < 0) return p.v0 + p.vbsLyRE*p.earthRadiusMeters*1e-6*Math.abs(vx*bz);
+  return p.v0;
+}
+function theta(I, Ic, deltaI){ return 0.5*(1 + Math.tanh((I-Ic)/deltaI)); }
+function deriv(y, vbs, p){
+  const I=y[0], V=y[1], pressure=Math.max(y[2],0), K=Math.max(y[3],0), I1=y[4], V1=y[5], I2=y[6], Wrc=y[7];
+  const th = theta(I, p.Ic, p.deltaI);
+  const Ips = p.alpha*Math.sqrt(pressure);
+  const det = p.L*p.L1 - p.M*p.M;
+  if(Math.abs(det) < 1e-12) throw new Error('Invalid parameters: L*L1 - M^2 is too close to zero.');
+  const a = vbs - V, b = V - V1;
+  const dI = (p.L1*a + p.M*b)/det;
+  const dI1 = (p.M*a + p.L*b)/det;
+  const dV = (I - I1 - Ips - p.sigma*V)/p.C;
+  const dPressure = (2/3)*((p.sigma*V*V)/p.omegaCps - p.mu0*pressure*Math.sqrt(K)*th - (pressure*V*p.Aeff)/(p.omegaCps*p.Btr*p.Ly) - (3*pressure)/(2*p.tauE));
+  const dK = Ips*V - K/p.tauParallel;
+  const dV1 = (I1 - I2 - p.sigma1*V1)/p.C1;
+  const dI2 = (V1 - (p.Rprc+p.RA2)*I2)/p.L2;
+  const dWrc = p.Rprc*I2*I2 + (pressure*V*p.Aeff)/(p.Btr*p.Ly) - Wrc/p.tauRc;
+  return {dy:[dI,dV,dPressure,dK,dI1,dV1,dI2,dWrc], aux:{theta:th,Ips}};
+}
+function stateArray(s){ return [s.I||0,s.V||0,s.p||0,s.K||0,s.I1||0,s.V1||0,s.I2||0,s.Wrc||0].map(Number); }
+function addScaled(y,dy,c){ return y.map((v,i)=>v+dy[i]*c); }
+function rk4(y, v0, vh, v1, dt, p){
+  const k1=deriv(y,v0,p).dy;
+  const k2=deriv(addScaled(y,k1,dt/2),vh,p).dy;
+  const k3=deriv(addScaled(y,k2,dt/2),vh,p).dy;
+  const k4=deriv(addScaled(y,k3,dt),v1,p).dy;
+  const out=y.map((v,i)=>v+dt*(k1[i]+2*k2[i]+2*k3[i]+k4[i])/6);
+  if(out[2]<0) out[2]=0; if(out[3]<0) out[3]=0;
+  return out;
+}
+function runPass(rows, params, initial){
+  let y = stateArray(initial);
+  const out=[];
+  for(let i=0; i<rows.length; i++){
+    const r=rows[i];
+    const aux = deriv(y, r.vbs, params).aux;
+    out.push({time:r.time,bz:r.bz,vx:r.vx,vbs:r.vbs,I:y[0],V:y[1],p:Math.max(y[2],0),K:Math.max(y[3],0),I1:y[4],V1:y[5],I2:y[6],Wrc:y[7],theta:aux.theta,Ips:aux.Ips,Ic:params.Ic});
+    if(i === rows.length-1) break;
+    const dt=(rows[i+1].time-r.time)/1000;
+    if(!Number.isFinite(dt) || dt<=0) continue;
+    y = rk4(y, r.vbs, (r.vbs+rows[i+1].vbs)/2, rows[i+1].vbs, dt, params);
+  }
+  return out;
+}
+function percentile(vals, pct){
+  const a=vals.filter(Number.isFinite).sort((x,y)=>x-y);
+  if(!a.length) return NaN;
+  if(pct<=0) return a[0]; if(pct>=100) return a[a.length-1];
+  const pos=(pct/100)*(a.length-1), lo=Math.floor(pos), hi=Math.ceil(pos), f=pos-lo;
+  return a[lo]*(1-f)+a[hi]*f;
+}
+function solveWindmi(rows, opts){
+  const base={...DEFAULT_PARAMS, ...opts.params};
+  const initial={...DEFAULT_INITIAL, ...opts.initial};
+  if(opts.mode === 'off') return runPass(rows, {...base, Ic:1e8}, initial);
+  if(opts.mode === 'constant') return runPass(rows, {...base, Ic:Number(opts.constantIc)}, initial);
+  const pre = runPass(rows, {...base, Ic:1e8}, initial);
+  const ic = percentile(pre.map(r=>r.I), Math.max(0, Math.min(100, Number(opts.percentile)||70)));
+  return runPass(rows, {...base, Ic:ic}, initial);
+}
+function makePlots(rows){
+  const x=rows.map(r=>r.time);
+  const common={margin:{l:70,r:55,t:10,b:38},height:240,paper_bgcolor:'#fff',plot_bgcolor:'#fff',xaxis:{title:'Date (UTC)',showgrid:true,gridcolor:'#e5e7eb'},showlegend:false};
+  Plotly.react('plotVbs', [{x,y:rows.map(r=>r.vbs/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'vBs'}], {...common, yaxis:{title:'vB_s (kV)',showgrid:true,gridcolor:'#e5e7eb'}} , {responsive:true});
+  Plotly.react('plotITheta', [
+    {x,y:rows.map(r=>r.theta),type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(8,170,189,.25)',line:{color:'rgba(8,170,189,.35)',width:1},name:'θ',yaxis:'y2'},
+    {x,y:rows.map(r=>r.I/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'I'}
+  ], {...common, showlegend:true, legend:{orientation:'h',x:.01,y:.98}, yaxis:{title:'I (kA)',showgrid:true,gridcolor:'#e5e7eb'}, yaxis2:{title:'θ',overlaying:'y',side:'right',range:[0,1],color:'#08aabd'}}, {responsive:true});
+  Plotly.react('plotI1', [{x,y:rows.map(r=>r.I1/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'I1'}], {...common, yaxis:{title:'I₁ (kA)',showgrid:true,gridcolor:'#e5e7eb'}}, {responsive:true});
+}
+function emptyPlots(){
+  Plotly.newPlot('plotVbs', [], {height:220,margin:{l:50,r:20,t:10,b:30},annotations:[{text:'Run WINDMI to show vB_s',xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}]}, {responsive:true});
+  Plotly.newPlot('plotITheta', [], {height:220,margin:{l:50,r:20,t:10,b:30},annotations:[{text:'Run WINDMI to show I and θ',xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}]}, {responsive:true});
+  Plotly.newPlot('plotI1', [], {height:220,margin:{l:50,r:20,t:10,b:30},annotations:[{text:'Run WINDMI to show I₁',xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}]}, {responsive:true});
+}
+function formatSci(v){ return Number.isFinite(v) ? Number(v).toExponential(3) : 'NaN'; }
+function exportCsv(){
+  if(!latestOutput || !latestOutput.length) return;
+  const cols=['time','bz','vx','vbs','I','V','p','K','I1','V1','I2','Wrc','theta','Ips','Ic'];
+  const lines=[cols.join(',')];
+  for(const r of latestOutput){ lines.push(cols.map(c=> c==='time' ? r.time.toISOString() : r[c]).join(',')); }
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='windmi_output.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+</script>
 </body>
 </html>
