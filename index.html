@@ -3,98 +3,89 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WINDMI Web Tool</title>
+  <title>windmi web tool</title>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
     :root{
       --blue:#062f66;
-      --blue2:#0b4f9c;
       --teal:#08aabd;
-      --orange:#f5821f;
-      --bg:#f7f9fc;
+      --bg:#f6f8fb;
       --card:#ffffff;
-      --line:#d8e0ea;
+      --line:#d9e2ec;
+      --text:#1f2937;
       --muted:#667085;
-      --text:#111827;
     }
     *{box-sizing:border-box}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
     .app{display:flex;min-height:100vh;width:100%}
-    aside{width:245px;background:#fff;border-right:1px solid var(--line);padding:24px 18px;position:sticky;top:0;height:100vh}
-    .wordmark{font-size:44px;line-height:1;font-weight:700;letter-spacing:.5px;margin:4px 0 8px;color:var(--blue)}
-    .wordmark .mi{color:var(--teal)}
-    .tool-name{font-weight:700;color:#12213d;margin-bottom:28px}
-    nav a{display:block;text-decoration:none;color:#17233c;padding:12px 14px;border-radius:8px;margin:4px 0;font-size:15px}
-    nav a:hover, nav a.active{background:#eaf2fb;color:var(--blue);font-weight:700}
-    .note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:26px}
-    main{flex:1;padding:28px;max-width:none}
-    header h1{margin:0 0 6px;color:var(--blue);font-size:32px}
-    header p{margin:0 0 22px;color:var(--muted)}
-    section{scroll-margin-top:18px}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
-    .card h2{margin:0 0 6px;color:var(--blue);font-size:20px}
-    .card h3{margin:0 0 12px;color:var(--blue);font-size:16px}
-    .card p{margin:0 0 14px;color:var(--muted)}
-    .run-grid{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:20px}
-    .panel{border-right:1px solid var(--line);padding-right:20px}
-    .panel:last-child{border-right:0;padding-right:0}
-    .field{margin-bottom:14px}
-    label, legend{font-weight:600;font-size:14px;color:#1f2937}
-    input, select{width:100%;margin-top:6px;padding:10px 11px;border:1px solid #c7d2df;border-radius:7px;background:#fff;font-size:14px}
-    input[type="radio"], input[type="checkbox"]{width:auto;margin-right:8px}
+    aside{width:240px;background:#fff;border-right:1px solid var(--line);padding:24px 18px;position:sticky;top:0;height:100vh}
+    .wordmark{font-size:44px;font-weight:700;letter-spacing:.5px;color:var(--blue);line-height:1;margin-bottom:10px}
+    .wordmark span{color:var(--teal)}
+    .tool-name{font-weight:700;margin-bottom:28px;color:#12213d}
+    nav button{display:block;width:100%;text-align:left;background:none;border:0;color:#17233c;padding:12px 14px;border-radius:8px;margin:5px 0;font-size:15px;cursor:pointer}
+    nav button.active, nav button:hover{background:#eaf2fb;color:var(--blue);font-weight:700}
+    .note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:28px}
+    main{flex:1;padding:26px;min-width:0}
+    h1{margin:0 0 6px;color:var(--blue);font-size:30px}
+    h2{margin:0 0 8px;color:var(--blue);font-size:20px}
+    h3{margin:18px 0 10px;color:var(--blue);font-size:15px}
+    p{color:var(--muted);margin:0 0 14px;line-height:1.45}
+    .view{display:none}.view.active{display:block}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+    .run-layout{display:grid;grid-template-columns:1fr 2fr;gap:18px;align-items:start}
+    .left-panel{position:sticky;top:20px}
+    .plot-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+    .plot-title{font-weight:700;color:var(--blue);margin:0 0 6px}
+    .plot{height:230px;width:100%}
+    .field{margin-bottom:13px}
+    label, legend{font-size:14px;font-weight:700;color:#243047}
+    input,select{width:100%;margin-top:6px;padding:9px 10px;border:1px solid #c7d2df;border-radius:7px;background:#fff;font-size:14px}
+    input[type="radio"],input[type="checkbox"]{width:auto;margin:0 8px 0 0}
     .radio-line{display:flex;align-items:flex-start;gap:8px;margin:11px 0;font-weight:400}
     .radio-line strong{display:block;font-size:14px}
     .radio-line small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
-    .inline{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:10px;margin:6px 0 10px 28px}
-    .quick-grid,.param-grid,.initial-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px}
-    .buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-    button{border:0;border-radius:8px;padding:11px 16px;font-weight:700;cursor:pointer;background:var(--blue);color:white;font-size:14px}
+    .inline{display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:center;margin:6px 0 10px 28px}
+    .quick-grid,.param-grid,.initial-grid,.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+    .buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    button.action{border:0;border-radius:8px;padding:10px 15px;font-weight:700;cursor:pointer;background:var(--blue);color:white;font-size:14px}
     button.secondary{background:#fff;color:var(--blue);border:1px solid var(--blue)}
     button.ghost{background:#eef2f7;color:#1f2937}
     button:disabled{opacity:.55;cursor:not-allowed}
-    .status{margin-top:14px;padding:10px 12px;border-radius:8px;background:#eef6ff;color:#19436d;font-size:14px;white-space:pre-wrap}
-    .status.error{background:#fff1f0;color:#9f1d1d}
-    .status.ok{background:#edfdf3;color:#166534}
-    .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-    details summary{cursor:pointer;color:var(--blue);font-size:18px;font-weight:700}
-    .plot-wrap{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
-    .plot-title{font-weight:700;color:var(--blue);margin:4px 0 6px}
-    .plot{height:240px;width:100%}
-    .small{font-size:12px;color:var(--muted)}
+    .status{margin-top:13px;padding:10px 12px;border-radius:8px;background:#eef6ff;color:#19436d;font-size:14px;white-space:pre-wrap}
+    .status.error{background:#fff1f0;color:#9f1d1d}.status.ok{background:#edfdf3;color:#166534}
+    .subtle{font-size:12px;color:var(--muted)}
     .hidden{display:none!important}
-    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    @media(max-width:900px){.app{display:block}aside{position:relative;width:100%;height:auto}.run-grid,.two-col{grid-template-columns:1fr}.panel{border-right:0;border-bottom:1px solid var(--line);padding-right:0;padding-bottom:16px}.panel:last-child{border-bottom:0}.wordmark{font-size:36px}main{padding:16px}}
+    .section-gap{margin-top:18px}
+    .topline{margin-bottom:18px}
+    @media(max-width:950px){.app{display:block}aside{position:relative;width:100%;height:auto}.run-layout{grid-template-columns:1fr}.left-panel{position:relative;top:auto}.wordmark{font-size:36px}main{padding:16px}}
   </style>
 </head>
 <body>
 <div class="app">
   <aside>
-    <div class="wordmark">wind<span class="mi">mi</span></div>
+    <div class="wordmark">wind<span>mi</span></div>
     <div class="tool-name">WINDMI Web Tool</div>
-    <nav id="nav">
-      <a href="#run" class="active">Run WINDMI</a>
-      <a href="#trigger">Trigger Settings</a>
-      <a href="#model">Model Parameters</a>
-      <a href="#initial">Initial Conditions</a>
-      <a href="#data">Data Source</a>
-      <a href="#plots">Plots</a>
+    <nav>
+      <button class="nav-btn active" data-view="runView">Run WINDMI</button>
+      <button class="nav-btn" data-view="paramsView">Model Parameters</button>
+      <button class="nav-btn" data-view="advancedView">Advanced Settings</button>
     </nav>
-    <div class="note">Simple workflow: select a UTC date range, choose trigger mode, run, plot. Most users can leave configuration unchanged.</div>
+    <div class="note">Main workflow: choose a date range, choose trigger behavior, run, and inspect the plots. Most users will not need the other pages.</div>
   </aside>
 
   <main>
-    <header>
-      <h1>Run WINDMI</h1>
-      <p>Select a date range, run the WINDMI model, and inspect the output plots.</p>
-    </header>
+    <section id="runView" class="view active">
+      <div class="topline">
+        <h1>Run WINDMI</h1>
+        <p>Select a date range and run the model. Output plots stay on this page.</p>
+      </div>
 
-    <section id="run" class="card">
-      <h2>Main run settings</h2>
-      <p>Use these controls for a standard run.</p>
-      <div class="run-grid">
-        <div class="panel">
-          <h3>1. Date range</h3>
+      <div class="run-layout">
+        <div class="card left-panel">
+          <h2>Main run settings</h2>
+
+          <h3>Date range</h3>
           <div class="field">
             <label for="startTime">Start date and time, UTC</label>
             <input id="startTime" type="datetime-local">
@@ -103,18 +94,8 @@
             <label for="endTime">End date and time, UTC</label>
             <input id="endTime" type="datetime-local">
           </div>
-          <div class="field">
-            <label><input type="radio" name="dataSource" value="repo" checked> Use built-in yearly files</label><br>
-            <label><input type="radio" name="dataSource" value="upload"> Upload CSV file</label>
-          </div>
-          <div id="uploadBox" class="field hidden">
-            <label for="fileInput">OMNI CSV file</label>
-            <input id="fileInput" type="file" accept=".csv,.txt">
-          </div>
-        </div>
 
-        <div id="trigger" class="panel">
-          <h3>2. Trigger settings</h3>
+          <h3>Trigger settings</h3>
           <label class="radio-line">
             <input type="radio" name="icMode" value="off" checked>
             <span><strong>Trigger off</strong><small>Sets I<sub>c</sub> = 1e8, so the trigger never turns on.</small></span>
@@ -129,68 +110,84 @@
           </div>
           <label class="radio-line">
             <input type="radio" name="icMode" value="variable">
-            <span><strong>Variable I<sub>c</sub></strong><small>Run a prepass and set I<sub>c</sub> from the selected percentile of I.</small></span>
+            <span><strong>Variable I<sub>c</sub></strong><small>Set I<sub>c</sub> from the selected percentile of a prepass I.</small></span>
           </label>
           <div class="inline">
             <label for="icPercentile">Percentile</label>
             <input id="icPercentile" type="number" min="0" max="100" step="1" value="70">
           </div>
-        </div>
 
-        <div class="panel">
-          <h3>3. Quick parameters</h3>
-          <p class="small">Spinner steps are 10% of nominal.</p>
+          <h3>Quick parameters</h3>
+          <p class="subtle">L, C, and Σ. Spinner steps are 10% of nominal.</p>
           <div id="quickParams" class="quick-grid"></div>
+
+          <div class="buttons">
+            <button id="runBtn" class="action">Run WINDMI</button>
+            <button id="exportBtn" class="action ghost" disabled>Export CSV</button>
+          </div>
+          <div id="status" class="status">Ready.</div>
+        </div>
+
+        <div class="card">
+          <h2>Output plot</h2>
+          <p>I and I<sub>1</sub> are not normalized. θ is shown as a shaded quantity on the right axis in the middle panel.</p>
+          <div class="plot-card"><div class="plot-title">vB<sub>s</sub></div><div id="plotVbs" class="plot"></div></div>
+          <div class="plot-card"><div class="plot-title">I and θ</div><div id="plotITheta" class="plot"></div></div>
+          <div class="plot-card"><div class="plot-title">I<sub>1</sub></div><div id="plotI1" class="plot"></div></div>
         </div>
       </div>
-      <div class="buttons">
-        <button id="runBtn">Run WINDMI</button>
-        <button id="resetParams" class="secondary">Reset to nominal parameters</button>
-        <button id="exportBtn" class="ghost" disabled>Export output CSV</button>
+    </section>
+
+    <section id="paramsView" class="view">
+      <div class="topline">
+        <h1>Model Parameters</h1>
+        <p>Most users can leave these at the nominal values. L, C, and Σ are synchronized with the quick controls on the run page.</p>
       </div>
-      <div id="status" class="status">Ready.</div>
+      <div class="card">
+        <div class="buttons" style="margin-top:0;margin-bottom:16px">
+          <button id="resetParams" class="action secondary">Reset to nominal parameters</button>
+        </div>
+        <div id="paramGrid" class="param-grid"></div>
+      </div>
     </section>
 
-    <section id="plots" class="card">
-      <h2>Plots</h2>
-      <p>I and I<sub>1</sub> are not normalized. The middle panel uses θ as a shaded right-axis quantity.</p>
-      <div class="plot-wrap"><div class="plot-title">vB<sub>s</sub></div><div id="plotVbs" class="plot"></div></div>
-      <div class="plot-wrap"><div class="plot-title">I and θ</div><div id="plotITheta" class="plot"></div></div>
-      <div class="plot-wrap"><div class="plot-title">I<sub>1</sub></div><div id="plotI1" class="plot"></div></div>
-    </section>
-
-    <section id="model" class="card">
-      <h2>Model parameters</h2>
-      <p>Most users can leave these at nominal values. L, C, and Σ are also shown in Quick Parameters.</p>
-      <div id="paramGrid" class="param-grid"></div>
-    </section>
-
-    <section id="initial" class="card">
-      <details>
-        <summary>Initial conditions</summary>
-        <p class="small">Most users should leave these unchanged.</p>
+    <section id="advancedView" class="view">
+      <div class="topline">
+        <h1>Advanced Settings</h1>
+        <p>Initial conditions and data-source controls are here because most users will not need to change them.</p>
+      </div>
+      <div class="card">
+        <h2>Initial conditions</h2>
+        <p class="subtle">Leave these unchanged for ordinary use unless you are matching a specific Simulink setup.</p>
         <div id="initialGrid" class="initial-grid"></div>
-      </details>
-    </section>
-
-    <section id="data" class="card">
-      <h2>Data source and handling</h2>
-      <div class="settings-grid">
-        <div class="field">
-          <label for="dataPattern">Yearly data path pattern</label>
-          <input id="dataPattern" type="text" value="data/omni_{year}.csv">
-          <div class="small">Example: data/omni_2000.csv</div>
-        </div>
-        <div class="field">
-          <label for="spinupHours">Spin-up before start, hours</label>
-          <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2">
-        </div>
-        <div class="field">
-          <label><input id="interpolateMissing" type="checkbox" checked> Interpolate short gaps</label>
-        </div>
-        <div class="field">
-          <label for="maxGapMinutes">Maximum gap to interpolate, minutes</label>
-          <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30">
+      </div>
+      <div class="card section-gap">
+        <h2>Data source</h2>
+        <div class="settings-grid">
+          <div class="field">
+            <label><input type="radio" name="dataSource" value="repo" checked> Use built-in yearly files</label><br><br>
+            <label><input type="radio" name="dataSource" value="upload"> Upload one OMNI CSV file</label>
+          </div>
+          <div id="uploadBox" class="field hidden">
+            <label for="fileInput">OMNI CSV file</label>
+            <input id="fileInput" type="file" accept=".csv,.txt">
+          </div>
+          <div class="field">
+            <label for="dataPattern">Yearly data path pattern</label>
+            <input id="dataPattern" type="text" value="data/omni_{year}.csv">
+            <div class="subtle">Example: data/omni_2000.csv</div>
+          </div>
+          <div class="field">
+            <label for="spinupHours">Spin-up before start, hours</label>
+            <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2">
+          </div>
+          <div class="field">
+            <label><input id="interpolateMissing" type="checkbox" checked> Interpolate short gaps</label>
+          </div>
+          <div class="field">
+            <label for="maxGapMinutes">Maximum gap to interpolate, minutes</label>
+            <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30">
+          </div>
         </div>
       </div>
     </section>
@@ -212,7 +209,7 @@ const PARAM_META = [
   ['M','M',''], ['deltaI','ΔI','A'], ['sigma','Σ',''], ['sigma1','Σ₁',''],
   ['mu0','μ₀',''], ['Aeff','Aeff','m²'], ['Btr','Btr','T'], ['omegaCps','Ωcps',''],
   ['tauE','τE','s'], ['tauParallel','τ∥','s'], ['tauRc','τrc','s'], ['alpha','α',''],
-  ['v0','V₀','V'], ['vbsLyRE','vBs Ly','RE'], ['earthRadiusMeters','RE','m']
+  ['v0','V₀','V'], ['vbsLyRE','vBs Lᵧ','RE'], ['earthRadiusMeters','RE','m']
 ];
 const DEFAULT_INITIAL = { I:0, V:0, p:0, K:0, I1:0, V1:0, I2:0, Wrc:0 };
 const INITIAL_META = [['I','I','A'],['V','V','V'],['p','p',''],['K','K∥',''],['I1','I₁','A'],['V1','V₁','V'],['I2','I₂','A'],['Wrc','Wrc','J']];
@@ -227,11 +224,15 @@ function init(){
   document.getElementById('resetParams').addEventListener('click', resetParams);
   document.getElementById('exportBtn').addEventListener('click', exportCsv);
   document.querySelectorAll('input[name="dataSource"]').forEach(r => r.addEventListener('change', updateUploadVisibility));
-  document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', () => setActiveNav(a)));
+  document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
   updateUploadVisibility();
   emptyPlots();
 }
-function setActiveNav(active){ document.querySelectorAll('nav a').forEach(a => a.classList.toggle('active', a===active)); }
+function showView(viewId){
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewId));
+  setTimeout(() => { try { Plotly.Plots.resize('plotVbs'); Plotly.Plots.resize('plotITheta'); Plotly.Plots.resize('plotI1'); } catch(e){} }, 50);
+}
 function status(msg, kind='neutral'){
   const box = document.getElementById('status');
   box.textContent = msg;
@@ -318,8 +319,7 @@ async function runModel(){
     if(latestOutput.length < 2) throw new Error('Model ran, but no output rows are inside the requested plotting range.');
     makePlots(latestOutput);
     document.getElementById('exportBtn').disabled=false;
-    status(`Done. Plotted ${latestOutput.length.toLocaleString()} output rows. I_c = ${formatSci(latestOutput[0].Ic)} A.`, 'ok');
-    document.getElementById('plots').scrollIntoView({behavior:'smooth'});
+    status(`Done. Plotted ${latestOutput.length.toLocaleString()} rows. I_c = ${formatSci(latestOutput[0].Ic)} A.`, 'ok');
   }catch(err){
     console.error(err);
     status(err.message || String(err), 'error');
@@ -331,7 +331,7 @@ async function loadData(modelStart, end, params){
   const src = document.querySelector('input[name="dataSource"]:checked').value;
   if(src === 'upload'){
     const file = document.getElementById('fileInput').files[0];
-    if(!file) throw new Error('Choose an OMNI CSV file or switch to built-in yearly files.');
+    if(!file) throw new Error('Choose an OMNI CSV file in Advanced Settings, or switch to built-in yearly files.');
     const text = await file.text();
     return parseOmniCsv(text, modelStart, end, params);
   }
@@ -492,18 +492,19 @@ function solveWindmi(rows, opts){
 }
 function makePlots(rows){
   const x=rows.map(r=>r.time);
-  const common={margin:{l:70,r:55,t:10,b:38},height:240,paper_bgcolor:'#fff',plot_bgcolor:'#fff',xaxis:{title:'Date (UTC)',showgrid:true,gridcolor:'#e5e7eb'},showlegend:false};
+  const common={margin:{l:70,r:60,t:8,b:36},height:230,paper_bgcolor:'#fff',plot_bgcolor:'#fff',xaxis:{title:'Date (UTC)',showgrid:true,gridcolor:'#e5e7eb'},showlegend:false};
   Plotly.react('plotVbs', [{x,y:rows.map(r=>r.vbs/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'vBs'}], {...common, yaxis:{title:'vB_s (kV)',showgrid:true,gridcolor:'#e5e7eb'}} , {responsive:true});
   Plotly.react('plotITheta', [
-    {x,y:rows.map(r=>r.theta),type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(8,170,189,.25)',line:{color:'rgba(8,170,189,.35)',width:1},name:'θ',yaxis:'y2'},
+    {x,y:rows.map(r=>r.theta),type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(8,170,189,.25)',line:{color:'rgba(8,170,189,.45)',width:1},name:'θ',yaxis:'y2'},
     {x,y:rows.map(r=>r.I/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'I'}
   ], {...common, showlegend:true, legend:{orientation:'h',x:.01,y:.98}, yaxis:{title:'I (kA)',showgrid:true,gridcolor:'#e5e7eb'}, yaxis2:{title:'θ',overlaying:'y',side:'right',range:[0,1],color:'#08aabd'}}, {responsive:true});
   Plotly.react('plotI1', [{x,y:rows.map(r=>r.I1/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'I1'}], {...common, yaxis:{title:'I₁ (kA)',showgrid:true,gridcolor:'#e5e7eb'}}, {responsive:true});
 }
 function emptyPlots(){
-  Plotly.newPlot('plotVbs', [], {height:220,margin:{l:50,r:20,t:10,b:30},annotations:[{text:'Run WINDMI to show vB_s',xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}]}, {responsive:true});
-  Plotly.newPlot('plotITheta', [], {height:220,margin:{l:50,r:20,t:10,b:30},annotations:[{text:'Run WINDMI to show I and θ',xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}]}, {responsive:true});
-  Plotly.newPlot('plotI1', [], {height:220,margin:{l:50,r:20,t:10,b:30},annotations:[{text:'Run WINDMI to show I₁',xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}]}, {responsive:true});
+  const placeholder = txt => ({height:230,margin:{l:50,r:20,t:10,b:30},annotations:[{text:txt,xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}],xaxis:{visible:false},yaxis:{visible:false},paper_bgcolor:'#fff',plot_bgcolor:'#fff'});
+  Plotly.newPlot('plotVbs', [], placeholder('Run WINDMI to show vB_s'), {responsive:true});
+  Plotly.newPlot('plotITheta', [], placeholder('Run WINDMI to show I and θ'), {responsive:true});
+  Plotly.newPlot('plotI1', [], placeholder('Run WINDMI to show I₁'), {responsive:true});
 }
 function formatSci(v){ return Number.isFinite(v) ? Number(v).toExponential(3) : 'NaN'; }
 function exportCsv(){
