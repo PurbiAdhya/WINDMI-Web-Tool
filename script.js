@@ -13,10 +13,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
 function cacheSelectors() {
   const ids = [
-    "setupPage", "plotPage", "backToSetupBtn",
-    "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours", "icMode",
+    "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours",
     "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
-    "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "resetDefaultsBtn", "resetParamsBtn",
+    "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
     "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1"
   ];
 
@@ -114,17 +113,26 @@ function wireEvents() {
   });
   updateTriggerVisibility();
 
+  document.querySelectorAll("[data-view]").forEach(control => {
+    control.addEventListener("click", event => {
+      event.preventDefault();
+      showView(control.dataset.view);
+    });
+  });
+
   selectors.runBtn.addEventListener("click", runModel);
   selectors.exportBtn.addEventListener("click", exportLatestRun);
   selectors.resetDefaultsBtn.addEventListener("click", resetDefaults);
   selectors.resetParamsBtn.addEventListener("click", resetNominalParameters);
-  selectors.backToSetupBtn.addEventListener("click", showSetupPage);
+  if (selectors.resetParamsBtnTop) {
+    selectors.resetParamsBtnTop.addEventListener("click", resetNominalParameters);
+  }
 }
 
 function updateSourceVisibility() {
   const source = selectedDataSource();
-  selectors.uploadFieldWrap.style.opacity = source === "upload" ? "1" : "0.55";
-  selectors.fileInput.disabled = source !== "upload";
+  if (selectors.uploadFieldWrap) selectors.uploadFieldWrap.style.opacity = source === "upload" ? "1" : "0.55";
+  if (selectors.fileInput) selectors.fileInput.disabled = source !== "upload";
 }
 
 function selectedDataSource() {
@@ -137,7 +145,7 @@ function selectedTriggerMode() {
 
 function updateTriggerVisibility() {
   const mode = selectedTriggerMode();
-  if (selectors.icConstant) selectors.icConstant.disabled = mode === "off";
+  if (selectors.icConstant) selectors.icConstant.disabled = mode !== "constant";
   if (selectors.icPercentile) selectors.icPercentile.disabled = mode !== "percentile";
 }
 
@@ -154,7 +162,7 @@ function resetDefaults() {
   selectors.maxGapMinutes.value = "30";
   selectors.dataPathPattern.value = "data/omni_{year}.csv";
   setDefaultTimes();
-  showSetupPage();
+  showView("runView");
   setStatus("Setup restored.", "neutral");
 }
 
@@ -163,16 +171,20 @@ function resetNominalParameters() {
   setStatus("Model parameters reset to nominal values.", "neutral");
 }
 
-function showPlotPage() {
-  selectors.setupPage.classList.remove("active");
-  selectors.plotPage.classList.add("active");
+function showView(viewId) {
+  document.querySelectorAll(".view").forEach(view => {
+    view.classList.toggle("active", view.id === viewId);
+  });
+  document.querySelectorAll(".nav-link").forEach(link => {
+    link.classList.toggle("active", link.dataset.view === viewId);
+  });
   window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-function showSetupPage() {
-  selectors.plotPage.classList.remove("active");
-  selectors.setupPage.classList.add("active");
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  setTimeout(() => {
+    ["plotVbs", "plotITheta", "plotI1"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    });
+  }, 80);
 }
 
 function setStatus(message, mode = "neutral") {
@@ -273,7 +285,7 @@ async function runModel() {
       plotted
     };
 
-    showPlotPage();
+    showView("runView");
     await new Promise(resolve => setTimeout(resolve, 60));
     plotRun(latestRun);
     selectors.exportBtn.disabled = false;

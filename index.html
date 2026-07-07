@@ -1,521 +1,213 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>windmi web tool</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WINDMI Web Tool</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-  <style>
-    :root{
-      --blue:#062f66;
-      --teal:#08aabd;
-      --bg:#f6f8fb;
-      --card:#ffffff;
-      --line:#d9e2ec;
-      --text:#1f2937;
-      --muted:#667085;
-    }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
-    .app{display:flex;min-height:100vh;width:100%}
-    aside{width:240px;background:#fff;border-right:1px solid var(--line);padding:24px 18px;position:sticky;top:0;height:100vh}
-    .wordmark{font-size:44px;font-weight:700;letter-spacing:.5px;color:var(--blue);line-height:1;margin-bottom:10px}
-    .wordmark span{color:var(--teal)}
-    .tool-name{font-weight:700;margin-bottom:28px;color:#12213d}
-    nav button{display:block;width:100%;text-align:left;background:none;border:0;color:#17233c;padding:12px 14px;border-radius:8px;margin:5px 0;font-size:15px;cursor:pointer}
-    nav button.active, nav button:hover{background:#eaf2fb;color:var(--blue);font-weight:700}
-    .note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:28px}
-    main{flex:1;padding:26px;min-width:0}
-    h1{margin:0 0 6px;color:var(--blue);font-size:30px}
-    h2{margin:0 0 8px;color:var(--blue);font-size:20px}
-    h3{margin:18px 0 10px;color:var(--blue);font-size:15px}
-    p{color:var(--muted);margin:0 0 14px;line-height:1.45}
-    .view{display:none}.view.active{display:block}
-    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
-    .run-layout{display:grid;grid-template-columns:1fr 2fr;gap:18px;align-items:start}
-    .left-panel{position:sticky;top:20px}
-    .plot-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
-    .plot-title{font-weight:700;color:var(--blue);margin:0 0 6px}
-    .plot{height:230px;width:100%}
-    .field{margin-bottom:13px}
-    label, legend{font-size:14px;font-weight:700;color:#243047}
-    input,select{width:100%;margin-top:6px;padding:9px 10px;border:1px solid #c7d2df;border-radius:7px;background:#fff;font-size:14px}
-    input[type="radio"],input[type="checkbox"]{width:auto;margin:0 8px 0 0}
-    .radio-line{display:flex;align-items:flex-start;gap:8px;margin:11px 0;font-weight:400}
-    .radio-line strong{display:block;font-size:14px}
-    .radio-line small{display:block;color:var(--muted);margin-top:3px;line-height:1.35}
-    .inline{display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:center;margin:6px 0 10px 28px}
-    .quick-grid,.param-grid,.initial-grid,.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
-    .buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
-    button.action{border:0;border-radius:8px;padding:10px 15px;font-weight:700;cursor:pointer;background:var(--blue);color:white;font-size:14px}
-    button.secondary{background:#fff;color:var(--blue);border:1px solid var(--blue)}
-    button.ghost{background:#eef2f7;color:#1f2937}
-    button:disabled{opacity:.55;cursor:not-allowed}
-    .status{margin-top:13px;padding:10px 12px;border-radius:8px;background:#eef6ff;color:#19436d;font-size:14px;white-space:pre-wrap}
-    .status.error{background:#fff1f0;color:#9f1d1d}.status.ok{background:#edfdf3;color:#166534}
-    .subtle{font-size:12px;color:var(--muted)}
-    .hidden{display:none!important}
-    .section-gap{margin-top:18px}
-    .topline{margin-bottom:18px}
-    @media(max-width:950px){.app{display:block}aside{position:relative;width:100%;height:auto}.run-layout{grid-template-columns:1fr}.left-panel{position:relative;top:auto}.wordmark{font-size:36px}main{padding:16px}}
-  </style>
 </head>
 <body>
-<div class="app">
-  <aside>
-    <div class="wordmark">wind<span>mi</span></div>
-    <div class="tool-name">WINDMI Web Tool</div>
-    <nav>
-      <button class="nav-btn active" data-view="runView">Run WINDMI</button>
-      <button class="nav-btn" data-view="paramsView">Model Parameters</button>
-      <button class="nav-btn" data-view="advancedView">Advanced Settings</button>
-    </nav>
-    <div class="note">Main workflow: choose a date range, choose trigger behavior, run, and inspect the plots. Most users will not need the other pages.</div>
-  </aside>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="WINDMI navigation">
+      <a class="brand" href="#" data-view="runView" aria-label="WINDMI Web Tool home">
+        <img src="assets/windmi-wordmark.png" alt="WINDMI" class="brand-logo" />
+        <span class="brand-title">WINDMI Web Tool</span>
+      </a>
 
-  <main>
-    <section id="runView" class="view active">
-      <div class="topline">
-        <h1>Run WINDMI</h1>
-        <p>Select a date range and run the model. Output plots stay on this page.</p>
-      </div>
+      <nav class="side-nav">
+        <button class="nav-link active" type="button" data-view="runView">Run WINDMI</button>
+        <button class="nav-link" type="button" data-view="modelParametersView">Model Parameters</button>
+        <button class="nav-link" type="button" data-view="advancedSettingsView">Advanced Settings</button>
+      </nav>
 
-      <div class="run-layout">
-        <div class="card left-panel">
-          <h2>Main run settings</h2>
+      <p class="sidebar-note">Choose a UTC range, choose a trigger setting, then run the model. Most users can leave the other settings unchanged.</p>
+    </aside>
 
-          <h3>Date range</h3>
-          <div class="field">
-            <label for="startTime">Start date and time, UTC</label>
-            <input id="startTime" type="datetime-local">
-          </div>
-          <div class="field">
-            <label for="endTime">End date and time, UTC</label>
-            <input id="endTime" type="datetime-local">
-          </div>
+    <main class="main-content">
+      <section id="runView" class="view active" aria-labelledby="runHeading">
+        <header class="page-header compact-header">
+          <p class="eyebrow">Browser-based solver</p>
+          <h1 id="runHeading">Run WINDMI</h1>
+          <p>Select a date range, choose trigger behavior, adjust only the quick parameters you need, and plot the output.</p>
+        </header>
 
-          <h3>Trigger settings</h3>
-          <label class="radio-line">
-            <input type="radio" name="icMode" value="off" checked>
-            <span><strong>Trigger off</strong><small>Sets I<sub>c</sub> = 1e8, so the trigger never turns on.</small></span>
-          </label>
-          <label class="radio-line">
-            <input type="radio" name="icMode" value="constant">
-            <span><strong>Constant I<sub>c</sub></strong><small>Use one fixed threshold.</small></span>
-          </label>
-          <div class="inline">
-            <label for="icConstant">I<sub>c</sub> (A)</label>
-            <input id="icConstant" type="number" step="1000" value="20000000">
-          </div>
-          <label class="radio-line">
-            <input type="radio" name="icMode" value="variable">
-            <span><strong>Variable I<sub>c</sub></strong><small>Set I<sub>c</sub> from the selected percentile of a prepass I.</small></span>
-          </label>
-          <div class="inline">
-            <label for="icPercentile">Percentile</label>
-            <input id="icPercentile" type="number" min="0" max="100" step="1" value="70">
-          </div>
+        <div class="run-layout">
+          <section class="run-settings-panel" aria-label="Run settings">
+            <section class="plain-section" aria-labelledby="dateHeading">
+              <h2 id="dateHeading">Date range</h2>
+              <div class="field">
+                <label for="startTime">Start date and time (UTC)</label>
+                <input id="startTime" type="datetime-local" />
+              </div>
+              <div class="field">
+                <label for="endTime">End date and time (UTC)</label>
+                <input id="endTime" type="datetime-local" />
+              </div>
+            </section>
 
-          <h3>Quick parameters</h3>
-          <p class="subtle">L, C, and Σ. Spinner steps are 10% of nominal.</p>
-          <div id="quickParams" class="quick-grid"></div>
+            <section class="plain-section" aria-labelledby="triggerHeading">
+              <h2 id="triggerHeading">Trigger settings</h2>
+              <fieldset class="trigger-list">
+                <legend class="sr-only">Trigger mode</legend>
 
-          <div class="buttons">
-            <button id="runBtn" class="action">Run WINDMI</button>
-            <button id="exportBtn" class="action ghost" disabled>Export CSV</button>
-          </div>
-          <div id="status" class="status">Ready.</div>
+                <label class="trigger-row no-input">
+                  <span class="radio-label">
+                    <input type="radio" name="icModeRadio" value="off" checked />
+                    <span>
+                      <strong>Trigger off</strong>
+                      <small>Sets I<sub>c</sub> = 1e8, so the trigger never turns on.</small>
+                    </span>
+                  </span>
+                </label>
+
+                <label class="trigger-row">
+                  <span class="radio-label">
+                    <input type="radio" name="icModeRadio" value="constant" />
+                    <span><strong>Constant I<sub>c</sub></strong></span>
+                  </span>
+                  <span class="side-input">
+                    <span>I<sub>c</sub> (A)</span>
+                    <input id="icConstant" type="number" step="1000" value="20000000" />
+                  </span>
+                </label>
+
+                <label class="trigger-row">
+                  <span class="radio-label">
+                    <input type="radio" name="icModeRadio" value="percentile" />
+                    <span><strong>Variable I<sub>c</sub></strong></span>
+                  </span>
+                  <span class="side-input">
+                    <span>Percentile</span>
+                    <input id="icPercentile" type="number" min="0" max="100" step="1" value="70" />
+                  </span>
+                </label>
+              </fieldset>
+            </section>
+
+            <section class="plain-section" aria-labelledby="quickHeading">
+              <h2 id="quickHeading">Quick parameters</h2>
+              <p class="hint">L, C, and Sigma. Spinner steps are 10% of the nominal value.</p>
+              <div id="quickParameterGrid" class="quick-parameter-grid one-column"></div>
+            </section>
+
+            <div class="button-row vertical-actions">
+              <button id="runBtn" type="button">Run WINDMI</button>
+              <button id="exportBtn" class="secondary" type="button" disabled>Export plotted output CSV</button>
+              <button id="resetParamsBtn" class="ghost" type="button">Reset to nominal parameters</button>
+              <button id="resetDefaultsBtn" class="ghost" type="button">Reset all setup</button>
+            </div>
+
+            <div id="statusBox" class="status neutral">Ready.</div>
+          </section>
+
+          <section class="output-panel" aria-labelledby="plotHeading">
+            <div class="plot-header compact-plot-header">
+              <div>
+                <p class="eyebrow">WINDMI output</p>
+                <h2 id="plotHeading">Output plot</h2>
+                <p>I and I<sub>1</sub> are not normalized. Theta is shown as a shaded trace on the right axis in the middle panel.</p>
+              </div>
+            </div>
+
+            <div id="runSummary" class="run-summary">No run yet.</div>
+
+            <div class="plot-stack">
+              <div id="plotVbs" class="plot-panel"></div>
+              <div id="plotITheta" class="plot-panel"></div>
+              <div id="plotI1" class="plot-panel"></div>
+            </div>
+          </section>
         </div>
+      </section>
 
-        <div class="card">
-          <h2>Output plot</h2>
-          <p>I and I<sub>1</sub> are not normalized. θ is shown as a shaded quantity on the right axis in the middle panel.</p>
-          <div class="plot-card"><div class="plot-title">vB<sub>s</sub></div><div id="plotVbs" class="plot"></div></div>
-          <div class="plot-card"><div class="plot-title">I and θ</div><div id="plotITheta" class="plot"></div></div>
-          <div class="plot-card"><div class="plot-title">I<sub>1</sub></div><div id="plotI1" class="plot"></div></div>
-        </div>
-      </div>
-    </section>
+      <section id="modelParametersView" class="view" aria-labelledby="modelHeading">
+        <header class="page-header compact-header">
+          <p class="eyebrow">Configuration</p>
+          <h1 id="modelHeading">Model Parameters</h1>
+          <p>Most users can leave these at the nominal values. L, C, and Sigma stay synchronized with the quick controls on the run page.</p>
+        </header>
 
-    <section id="paramsView" class="view">
-      <div class="topline">
-        <h1>Model Parameters</h1>
-        <p>Most users can leave these at the nominal values. L, C, and Σ are synchronized with the quick controls on the run page.</p>
-      </div>
-      <div class="card">
-        <div class="buttons" style="margin-top:0;margin-bottom:16px">
-          <button id="resetParams" class="action secondary">Reset to nominal parameters</button>
-        </div>
-        <div id="paramGrid" class="param-grid"></div>
-      </div>
-    </section>
+        <section class="card">
+          <div class="card-title-row">
+            <div>
+              <h2>Full parameter list</h2>
+              <p>Spinner steps are 10% of each nominal/default value.</p>
+            </div>
+            <button id="resetParamsBtnTop" class="secondary" type="button">Reset to nominal parameters</button>
+          </div>
+          <div id="parameterGrid" class="parameter-grid"></div>
+        </section>
+      </section>
 
-    <section id="advancedView" class="view">
-      <div class="topline">
-        <h1>Advanced Settings</h1>
-        <p>Initial conditions and data-source controls are here because most users will not need to change them.</p>
-      </div>
-      <div class="card">
-        <h2>Initial conditions</h2>
-        <p class="subtle">Leave these unchanged for ordinary use unless you are matching a specific Simulink setup.</p>
-        <div id="initialGrid" class="initial-grid"></div>
-      </div>
-      <div class="card section-gap">
-        <h2>Data source</h2>
-        <div class="settings-grid">
-          <div class="field">
-            <label><input type="radio" name="dataSource" value="repo" checked> Use built-in yearly files</label><br><br>
-            <label><input type="radio" name="dataSource" value="upload"> Upload one OMNI CSV file</label>
-          </div>
-          <div id="uploadBox" class="field hidden">
-            <label for="fileInput">OMNI CSV file</label>
-            <input id="fileInput" type="file" accept=".csv,.txt">
-          </div>
-          <div class="field">
-            <label for="dataPattern">Yearly data path pattern</label>
-            <input id="dataPattern" type="text" value="data/omni_{year}.csv">
-            <div class="subtle">Example: data/omni_2000.csv</div>
-          </div>
-          <div class="field">
-            <label for="spinupHours">Spin-up before start, hours</label>
-            <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2">
-          </div>
-          <div class="field">
-            <label><input id="interpolateMissing" type="checkbox" checked> Interpolate short gaps</label>
-          </div>
-          <div class="field">
-            <label for="maxGapMinutes">Maximum gap to interpolate, minutes</label>
-            <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30">
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-</div>
+      <section id="advancedSettingsView" class="view" aria-labelledby="advancedHeading">
+        <header class="page-header compact-header">
+          <p class="eyebrow">Advanced</p>
+          <h1 id="advancedHeading">Advanced Settings</h1>
+          <p>Initial conditions and data-source controls are here because most users will not need to change them.</p>
+        </header>
 
-<script>
-const DEFAULT_PARAMS = {
-  L: 90, L1: 20, L2: 8, Ly: 3.2e7, C: 50000, C1: 800,
-  Rprc: 0.1, RA2: 0.3, M: 0.1, deltaI: 1.25e5,
-  sigma: 8, sigma1: 3, mu0: 4.2e-9, Aeff: 8.14e13,
-  Btr: 5e-9, omegaCps: 2.6e24, tauE: 30*60,
-  tauParallel: 10*60, tauRc: 12*3600, alpha: 8e11,
-  v0: 4000, vbsLyRE: 10, earthRadiusMeters: 6380e3
-};
-const PARAM_META = [
-  ['L','L',''], ['L1','L₁',''], ['L2','L₂',''], ['Ly','Lᵧ','m'],
-  ['C','C',''], ['C1','C₁',''], ['Rprc','Rprc',''], ['RA2','RA2',''],
-  ['M','M',''], ['deltaI','ΔI','A'], ['sigma','Σ',''], ['sigma1','Σ₁',''],
-  ['mu0','μ₀',''], ['Aeff','Aeff','m²'], ['Btr','Btr','T'], ['omegaCps','Ωcps',''],
-  ['tauE','τE','s'], ['tauParallel','τ∥','s'], ['tauRc','τrc','s'], ['alpha','α',''],
-  ['v0','V₀','V'], ['vbsLyRE','vBs Lᵧ','RE'], ['earthRadiusMeters','RE','m']
-];
-const DEFAULT_INITIAL = { I:0, V:0, p:0, K:0, I1:0, V1:0, I2:0, Wrc:0 };
-const INITIAL_META = [['I','I','A'],['V','V','V'],['p','p',''],['K','K∥',''],['I1','I₁','A'],['V1','V₁','V'],['I2','I₂','A'],['Wrc','Wrc','J']];
-let latestOutput = null;
+        <section class="card" aria-labelledby="initialHeading">
+          <div class="card-title-row">
+            <div>
+              <h2 id="initialHeading">Initial conditions</h2>
+              <p>Leave these unchanged for ordinary use unless you are matching a specific Simulink setup.</p>
+            </div>
+          </div>
+          <div id="initialGrid" class="parameter-grid"></div>
+        </section>
 
-window.addEventListener('DOMContentLoaded', init);
-function init(){
-  buildParamInputs();
-  buildInitialInputs();
-  setDefaultDates();
-  document.getElementById('runBtn').addEventListener('click', runModel);
-  document.getElementById('resetParams').addEventListener('click', resetParams);
-  document.getElementById('exportBtn').addEventListener('click', exportCsv);
-  document.querySelectorAll('input[name="dataSource"]').forEach(r => r.addEventListener('change', updateUploadVisibility));
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => showView(btn.dataset.view)));
-  updateUploadVisibility();
-  emptyPlots();
-}
-function showView(viewId){
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === viewId));
-  setTimeout(() => { try { Plotly.Plots.resize('plotVbs'); Plotly.Plots.resize('plotITheta'); Plotly.Plots.resize('plotI1'); } catch(e){} }, 50);
-}
-function status(msg, kind='neutral'){
-  const box = document.getElementById('status');
-  box.textContent = msg;
-  box.className = 'status' + (kind === 'error' ? ' error' : kind === 'ok' ? ' ok' : '');
-}
-function stepOf(v){ const n=Math.abs(Number(v)); return (!Number.isFinite(n)||n===0) ? '1' : Number((n*0.1).toPrecision(12)).toString(); }
-function buildParamInputs(){
-  const full = document.getElementById('paramGrid');
-  const quick = document.getElementById('quickParams');
-  full.innerHTML=''; quick.innerHTML='';
-  const quickKeys = new Set(['L','C','sigma']);
-  for(const [key,label,unit] of PARAM_META){
-    const step = stepOf(DEFAULT_PARAMS[key]);
-    const node = document.createElement('div');
-    node.className = 'field';
-    node.innerHTML = `<label>${label}${unit ? ' ('+unit+')' : ''}</label><input data-param="${key}" type="number" step="${step}" value="${DEFAULT_PARAMS[key]}">`;
-    full.appendChild(node);
-    if(quickKeys.has(key)){
-      const q = document.createElement('div');
-      q.className = 'field';
-      q.innerHTML = `<label>${label}${unit ? ' ('+unit+')' : ''}</label><input data-quick="${key}" type="number" step="${step}" value="${DEFAULT_PARAMS[key]}">`;
-      quick.appendChild(q);
-    }
-  }
-  document.querySelectorAll('[data-quick]').forEach(inp => inp.addEventListener('input', e => {
-    const key=e.target.dataset.quick; const other=document.querySelector(`[data-param="${key}"]`); if(other) other.value=e.target.value;
-  }));
-  document.querySelectorAll('[data-param]').forEach(inp => inp.addEventListener('input', e => {
-    const key=e.target.dataset.param; const other=document.querySelector(`[data-quick="${key}"]`); if(other) other.value=e.target.value;
-  }));
-}
-function buildInitialInputs(){
-  const grid = document.getElementById('initialGrid'); grid.innerHTML='';
-  for(const [key,label,unit] of INITIAL_META){
-    const node = document.createElement('div');
-    node.className = 'field';
-    node.innerHTML = `<label>${label}${unit ? ' ('+unit+')' : ''}</label><input data-initial="${key}" type="number" step="any" value="${DEFAULT_INITIAL[key]}">`;
-    grid.appendChild(node);
-  }
-}
-function resetParams(){
-  document.querySelectorAll('[data-param]').forEach(inp => inp.value = DEFAULT_PARAMS[inp.dataset.param]);
-  document.querySelectorAll('[data-quick]').forEach(inp => inp.value = DEFAULT_PARAMS[inp.dataset.quick]);
-  status('Reset to nominal parameters.');
-}
-function setDefaultDates(){
-  const now = new Date();
-  const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1, 0, 0, 0));
-  const end = new Date(start.getTime() + 24*3600*1000);
-  document.getElementById('startTime').value = toInputUtc(start);
-  document.getElementById('endTime').value = toInputUtc(end);
-}
-function toInputUtc(d){
-  const p=n=>String(n).padStart(2,'0');
-  return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
-}
-function parseUtcInput(v){ if(!v) return null; const d=new Date(v + ':00Z'); return Number.isNaN(d.getTime()) ? null : d; }
-function updateUploadVisibility(){
-  const src = document.querySelector('input[name="dataSource"]:checked').value;
-  document.getElementById('uploadBox').classList.toggle('hidden', src !== 'upload');
-}
-function collectParams(){ const p={...DEFAULT_PARAMS}; document.querySelectorAll('[data-param]').forEach(i => p[i.dataset.param]=Number(i.value)); return p; }
-function collectInitial(){ const s={...DEFAULT_INITIAL}; document.querySelectorAll('[data-initial]').forEach(i => s[i.dataset.initial]=Number(i.value)); return s; }
-function selectedIcMode(){ return document.querySelector('input[name="icMode"]:checked').value; }
+        <section class="card" aria-labelledby="dataSourceHeading">
+          <div class="card-title-row">
+            <div>
+              <h2 id="dataSourceHeading">Data source and data handling</h2>
+              <p>Use yearly OMNI files in the repository or upload one CSV manually.</p>
+            </div>
+          </div>
 
-async function runModel(){
-  try{
-    document.getElementById('runBtn').disabled=true;
-    document.getElementById('exportBtn').disabled=true;
-    latestOutput=null;
-    const start = parseUtcInput(document.getElementById('startTime').value);
-    const end = parseUtcInput(document.getElementById('endTime').value);
-    if(!start || !end || end <= start) throw new Error('Enter a valid UTC start/end range.');
-    const spinup = Math.max(0, Number(document.getElementById('spinupHours').value) || 0);
-    const modelStart = new Date(start.getTime() - spinup*3600*1000);
-    const params = collectParams();
-    const initial = collectInitial();
-    status('Loading OMNI data...');
-    const rows = await loadData(modelStart, end, params);
-    if(rows.length < 2) throw new Error('Not enough valid OMNI rows in the selected range.');
-    status(`Loaded ${rows.length.toLocaleString()} OMNI rows. Running WINDMI...`);
-    const outputAll = solveWindmi(rows, {params, initial, mode:selectedIcMode(), constantIc:Number(document.getElementById('icConstant').value), percentile:Number(document.getElementById('icPercentile').value)});
-    latestOutput = outputAll.filter(r => r.time >= start && r.time <= end);
-    if(latestOutput.length < 2) throw new Error('Model ran, but no output rows are inside the requested plotting range.');
-    makePlots(latestOutput);
-    document.getElementById('exportBtn').disabled=false;
-    status(`Done. Plotted ${latestOutput.length.toLocaleString()} rows. I_c = ${formatSci(latestOutput[0].Ic)} A.`, 'ok');
-  }catch(err){
-    console.error(err);
-    status(err.message || String(err), 'error');
-  }finally{
-    document.getElementById('runBtn').disabled=false;
-  }
-}
-async function loadData(modelStart, end, params){
-  const src = document.querySelector('input[name="dataSource"]:checked').value;
-  if(src === 'upload'){
-    const file = document.getElementById('fileInput').files[0];
-    if(!file) throw new Error('Choose an OMNI CSV file in Advanced Settings, or switch to built-in yearly files.');
-    const text = await file.text();
-    return parseOmniCsv(text, modelStart, end, params);
-  }
-  const years = yearsNeeded(modelStart, end);
-  let rows=[];
-  const pattern = document.getElementById('dataPattern').value || 'data/omni_{year}.csv';
-  for(const y of years){
-    const path = pattern.replace('{year}', y);
-    status(`Loading ${path}...`);
-    const resp = await fetch(path);
-    if(!resp.ok) throw new Error(`Could not load ${path}. Check that the file exists and is named correctly.`);
-    const text = await resp.text();
-    rows = rows.concat(parseOmniCsv(text, modelStart, end, params));
-  }
-  rows.sort((a,b)=>a.time-b.time);
-  return cleanRows(rows);
-}
-function yearsNeeded(a,b){ const arr=[]; for(let y=a.getUTCFullYear(); y<=b.getUTCFullYear(); y++) arr.push(y); return arr; }
-function parseOmniCsv(text, start, end, params){
-  const parsed = Papa.parse(text, {header:true, dynamicTyping:true, skipEmptyLines:true});
-  if(parsed.errors && parsed.errors.length) console.warn(parsed.errors.slice(0,3));
-  const fields = parsed.meta.fields || [];
-  const keys = {
-    time: findCol(fields, ['epoch','time','date']),
-    bz: findCol(fields, ['bz']),
-    vx: findCol(fields, ['vx','velocity'])
-  };
-  if(!keys.time || !keys.bz || !keys.vx) throw new Error('Could not find time, Bz, and Vx columns in the OMNI file.');
-  const rows=[];
-  for(const raw of parsed.data){
-    const t = parseOmniTime(raw[keys.time]);
-    if(!t || t < start || t > end) continue;
-    let bz = Number(raw[keys.bz]);
-    let vx = Number(raw[keys.vx]);
-    if(!Number.isFinite(bz) || Math.abs(bz) >= 9999) bz = NaN;
-    if(!Number.isFinite(vx) || Math.abs(vx) >= 99999) vx = NaN;
-    rows.push({time:t, bz, vx});
-  }
-  rows.sort((a,b)=>a.time-b.time);
-  if(document.getElementById('interpolateMissing').checked){
-    const maxGap = (Number(document.getElementById('maxGapMinutes').value)||30)*60*1000;
-    interpolate(rows, 'bz', maxGap);
-    interpolate(rows, 'vx', maxGap);
-  }
-  for(const r of rows) r.vbs = computeVbs(r.bz, r.vx, params);
-  return cleanRows(rows);
-}
-function cleanRows(rows){
-  const seen = new Set();
-  const out=[];
-  for(const r of rows){
-    const key=r.time.getTime();
-    if(seen.has(key)) continue;
-    seen.add(key);
-    if(Number.isFinite(r.bz) && Number.isFinite(r.vx) && Number.isFinite(r.vbs)) out.push(r);
-  }
-  return out.sort((a,b)=>a.time-b.time);
-}
-function findCol(fields, needles){
-  const lower = fields.map(f => [f, String(f).toLowerCase()]);
-  for(const n of needles){
-    const hit = lower.find(([orig,lo]) => lo.includes(n));
-    if(hit) return hit[0];
-  }
-  return null;
-}
-function parseOmniTime(v){
-  if(v instanceof Date && !Number.isNaN(v.getTime())) return v;
-  if(typeof v !== 'string') return null;
-  let d = new Date(v);
-  if(!Number.isNaN(d.getTime())) return d;
-  const m = v.match(/^(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
-  if(m){ d = new Date(Date.UTC(+m[3], +m[2]-1, +m[1], +m[4], +m[5], +m[6])); return Number.isNaN(d.getTime()) ? null : d; }
-  return null;
-}
-function interpolate(rows, field, maxGapMs){
-  let i=0;
-  while(i < rows.length){
-    if(Number.isFinite(rows[i][field])){ i++; continue; }
-    const startMissing=i;
-    while(i<rows.length && !Number.isFinite(rows[i][field])) i++;
-    const endMissing=i-1;
-    const before=startMissing-1, after=i;
-    if(before < 0 || after >= rows.length) continue;
-    if(!Number.isFinite(rows[before][field]) || !Number.isFinite(rows[after][field])) continue;
-    const gap = rows[after].time - rows[before].time;
-    if(gap > maxGapMs) continue;
-    const y0=rows[before][field], y1=rows[after][field], t0=rows[before].time.getTime(), t1=rows[after].time.getTime();
-    for(let j=startMissing; j<=endMissing; j++){
-      const f = (rows[j].time.getTime()-t0)/(t1-t0);
-      rows[j][field] = y0 + f*(y1-y0);
-    }
-  }
-}
-function computeVbs(bz, vx, p){
-  if(!Number.isFinite(bz)||!Number.isFinite(vx)) return NaN;
-  if(bz < 0) return p.v0 + p.vbsLyRE*p.earthRadiusMeters*1e-6*Math.abs(vx*bz);
-  return p.v0;
-}
-function theta(I, Ic, deltaI){ return 0.5*(1 + Math.tanh((I-Ic)/deltaI)); }
-function deriv(y, vbs, p){
-  const I=y[0], V=y[1], pressure=Math.max(y[2],0), K=Math.max(y[3],0), I1=y[4], V1=y[5], I2=y[6], Wrc=y[7];
-  const th = theta(I, p.Ic, p.deltaI);
-  const Ips = p.alpha*Math.sqrt(pressure);
-  const det = p.L*p.L1 - p.M*p.M;
-  if(Math.abs(det) < 1e-12) throw new Error('Invalid parameters: L*L1 - M^2 is too close to zero.');
-  const a = vbs - V, b = V - V1;
-  const dI = (p.L1*a + p.M*b)/det;
-  const dI1 = (p.M*a + p.L*b)/det;
-  const dV = (I - I1 - Ips - p.sigma*V)/p.C;
-  const dPressure = (2/3)*((p.sigma*V*V)/p.omegaCps - p.mu0*pressure*Math.sqrt(K)*th - (pressure*V*p.Aeff)/(p.omegaCps*p.Btr*p.Ly) - (3*pressure)/(2*p.tauE));
-  const dK = Ips*V - K/p.tauParallel;
-  const dV1 = (I1 - I2 - p.sigma1*V1)/p.C1;
-  const dI2 = (V1 - (p.Rprc+p.RA2)*I2)/p.L2;
-  const dWrc = p.Rprc*I2*I2 + (pressure*V*p.Aeff)/(p.Btr*p.Ly) - Wrc/p.tauRc;
-  return {dy:[dI,dV,dPressure,dK,dI1,dV1,dI2,dWrc], aux:{theta:th,Ips}};
-}
-function stateArray(s){ return [s.I||0,s.V||0,s.p||0,s.K||0,s.I1||0,s.V1||0,s.I2||0,s.Wrc||0].map(Number); }
-function addScaled(y,dy,c){ return y.map((v,i)=>v+dy[i]*c); }
-function rk4(y, v0, vh, v1, dt, p){
-  const k1=deriv(y,v0,p).dy;
-  const k2=deriv(addScaled(y,k1,dt/2),vh,p).dy;
-  const k3=deriv(addScaled(y,k2,dt/2),vh,p).dy;
-  const k4=deriv(addScaled(y,k3,dt),v1,p).dy;
-  const out=y.map((v,i)=>v+dt*(k1[i]+2*k2[i]+2*k3[i]+k4[i])/6);
-  if(out[2]<0) out[2]=0; if(out[3]<0) out[3]=0;
-  return out;
-}
-function runPass(rows, params, initial){
-  let y = stateArray(initial);
-  const out=[];
-  for(let i=0; i<rows.length; i++){
-    const r=rows[i];
-    const aux = deriv(y, r.vbs, params).aux;
-    out.push({time:r.time,bz:r.bz,vx:r.vx,vbs:r.vbs,I:y[0],V:y[1],p:Math.max(y[2],0),K:Math.max(y[3],0),I1:y[4],V1:y[5],I2:y[6],Wrc:y[7],theta:aux.theta,Ips:aux.Ips,Ic:params.Ic});
-    if(i === rows.length-1) break;
-    const dt=(rows[i+1].time-r.time)/1000;
-    if(!Number.isFinite(dt) || dt<=0) continue;
-    y = rk4(y, r.vbs, (r.vbs+rows[i+1].vbs)/2, rows[i+1].vbs, dt, params);
-  }
-  return out;
-}
-function percentile(vals, pct){
-  const a=vals.filter(Number.isFinite).sort((x,y)=>x-y);
-  if(!a.length) return NaN;
-  if(pct<=0) return a[0]; if(pct>=100) return a[a.length-1];
-  const pos=(pct/100)*(a.length-1), lo=Math.floor(pos), hi=Math.ceil(pos), f=pos-lo;
-  return a[lo]*(1-f)+a[hi]*f;
-}
-function solveWindmi(rows, opts){
-  const base={...DEFAULT_PARAMS, ...opts.params};
-  const initial={...DEFAULT_INITIAL, ...opts.initial};
-  if(opts.mode === 'off') return runPass(rows, {...base, Ic:1e8}, initial);
-  if(opts.mode === 'constant') return runPass(rows, {...base, Ic:Number(opts.constantIc)}, initial);
-  const pre = runPass(rows, {...base, Ic:1e8}, initial);
-  const ic = percentile(pre.map(r=>r.I), Math.max(0, Math.min(100, Number(opts.percentile)||70)));
-  return runPass(rows, {...base, Ic:ic}, initial);
-}
-function makePlots(rows){
-  const x=rows.map(r=>r.time);
-  const common={margin:{l:70,r:60,t:8,b:36},height:230,paper_bgcolor:'#fff',plot_bgcolor:'#fff',xaxis:{title:'Date (UTC)',showgrid:true,gridcolor:'#e5e7eb'},showlegend:false};
-  Plotly.react('plotVbs', [{x,y:rows.map(r=>r.vbs/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'vBs'}], {...common, yaxis:{title:'vB_s (kV)',showgrid:true,gridcolor:'#e5e7eb'}} , {responsive:true});
-  Plotly.react('plotITheta', [
-    {x,y:rows.map(r=>r.theta),type:'scatter',mode:'lines',fill:'tozeroy',fillcolor:'rgba(8,170,189,.25)',line:{color:'rgba(8,170,189,.45)',width:1},name:'θ',yaxis:'y2'},
-    {x,y:rows.map(r=>r.I/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'I'}
-  ], {...common, showlegend:true, legend:{orientation:'h',x:.01,y:.98}, yaxis:{title:'I (kA)',showgrid:true,gridcolor:'#e5e7eb'}, yaxis2:{title:'θ',overlaying:'y',side:'right',range:[0,1],color:'#08aabd'}}, {responsive:true});
-  Plotly.react('plotI1', [{x,y:rows.map(r=>r.I1/1000),type:'scatter',mode:'lines',line:{color:'#062f66',width:1.6},name:'I1'}], {...common, yaxis:{title:'I₁ (kA)',showgrid:true,gridcolor:'#e5e7eb'}}, {responsive:true});
-}
-function emptyPlots(){
-  const placeholder = txt => ({height:230,margin:{l:50,r:20,t:10,b:30},annotations:[{text:txt,xref:'paper',yref:'paper',x:.5,y:.5,showarrow:false,font:{color:'#667085'}}],xaxis:{visible:false},yaxis:{visible:false},paper_bgcolor:'#fff',plot_bgcolor:'#fff'});
-  Plotly.newPlot('plotVbs', [], placeholder('Run WINDMI to show vB_s'), {responsive:true});
-  Plotly.newPlot('plotITheta', [], placeholder('Run WINDMI to show I and θ'), {responsive:true});
-  Plotly.newPlot('plotI1', [], placeholder('Run WINDMI to show I₁'), {responsive:true});
-}
-function formatSci(v){ return Number.isFinite(v) ? Number(v).toExponential(3) : 'NaN'; }
-function exportCsv(){
-  if(!latestOutput || !latestOutput.length) return;
-  const cols=['time','bz','vx','vbs','I','V','p','K','I1','V1','I2','Wrc','theta','Ips','Ic'];
-  const lines=[cols.join(',')];
-  for(const r of latestOutput){ lines.push(cols.map(c=> c==='time' ? r.time.toISOString() : r[c]).join(',')); }
-  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download='windmi_output.csv'; a.click(); URL.revokeObjectURL(a.href);
-}
-</script>
+          <div class="secondary-grid">
+            <fieldset class="field radio-card">
+              <legend>OMNI data source</legend>
+              <label><input type="radio" name="dataSource" value="repo" checked /> Built-in yearly files from repository</label>
+              <label><input type="radio" name="dataSource" value="upload" /> Upload one OMNI CSV file</label>
+            </fieldset>
+
+            <div class="field" id="uploadFieldWrap">
+              <label for="fileInput">OMNI CSV file input</label>
+              <input id="fileInput" type="file" accept=".csv,.txt" />
+              <p class="hint">Used only when upload mode is selected.</p>
+            </div>
+
+            <div class="field">
+              <label for="spinupHours">Spin-up before start (hours)</label>
+              <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2" />
+              <p class="hint">Near Jan 1, spin-up may load the previous year too.</p>
+            </div>
+
+            <div class="field wide-field">
+              <label for="dataPathPattern">Built-in data path pattern</label>
+              <input id="dataPathPattern" type="text" value="data/omni_{year}.csv" />
+            </div>
+
+            <label class="checkbox-line">
+              <input id="interpolateMissing" type="checkbox" checked />
+              Interpolate short gaps
+            </label>
+
+            <div class="field">
+              <label for="maxGapMinutes">Maximum gap to interpolate (minutes)</label>
+              <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30" />
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="windmi.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
