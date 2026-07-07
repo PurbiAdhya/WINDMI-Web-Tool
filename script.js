@@ -716,12 +716,12 @@ function plotRun(run) {
   const plotDiv = document.createElement("div");
   plotDiv.className = "plot-panel combined-plot-panel";
   const rowCount = 1 + outputKeys.length;
-  plotDiv.style.height = `${Math.max(520, 185 * rowCount + 110)}px`;
+  plotDiv.style.height = `${Math.max(500, 180 * rowCount + 70)}px`;
   stack.appendChild(plotDiv);
 
   const traces = [];
   const layout = makeCombinedPlotLayout(colors, rowCount);
-  const domains = calculateYDomains(rowCount, 0.085);
+  const domains = calculateYDomains(rowCount, 0.07);
   const palette = [colors.navy, colors.blue, colors.purple, colors.green, colors.amber, colors.rose, colors.slate];
 
   function axisId(prefix, rowNumber) {
@@ -772,7 +772,7 @@ function plotRun(run) {
 
     layout.annotations.push({
       x: 0.5,
-      y: Math.min(1.0, domains[rowNumber - 1][1] + 0.032),
+      y: Math.min(0.995, domains[rowNumber - 1][1] + 0.014),
       xref: "paper",
       yref: "paper",
       xanchor: "center",
@@ -879,7 +879,7 @@ function plotRun(run) {
     layout.legend = {
       orientation: "h",
       x: 0,
-      y: 1.13,
+      y: 1.045,
       xanchor: "left",
       yanchor: "bottom",
       font: { size: 13 }
@@ -914,8 +914,8 @@ function calculateYDomains(rowCount, gap = 0.045) {
 function makeCombinedPlotLayout(colors, rowCount) {
   return {
     autosize: true,
-    height: Math.max(520, 185 * rowCount + 110),
-    margin: { l: 76, r: 70, t: 76, b: 74 },
+    height: Math.max(500, 180 * rowCount + 70),
+    margin: { l: 76, r: 70, t: 38, b: 74 },
     paper_bgcolor: "white",
     plot_bgcolor: "white",
     hovermode: "x unified",
