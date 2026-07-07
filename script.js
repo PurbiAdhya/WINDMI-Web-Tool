@@ -716,13 +716,12 @@ function plotRun(run) {
   const plotDiv = document.createElement("div");
   plotDiv.className = "plot-panel combined-plot-panel";
   const rowCount = 1 + outputKeys.length;
-  const plotHeight = Math.max(520, 180 * rowCount + 120);
-  plotDiv.style.height = `${plotHeight}px`;
+  plotDiv.style.height = `${Math.max(520, 185 * rowCount + 110)}px`;
   stack.appendChild(plotDiv);
 
   const traces = [];
-  const layout = makeCombinedPlotLayout(colors, rowCount, plotHeight);
-  const domains = calculateYDomains(rowCount, 0.075);
+  const layout = makeCombinedPlotLayout(colors, rowCount);
+  const domains = calculateYDomains(rowCount, 0.085);
   const palette = [colors.navy, colors.blue, colors.purple, colors.green, colors.amber, colors.rose, colors.slate];
 
   function axisId(prefix, rowNumber) {
@@ -737,44 +736,43 @@ function plotRun(run) {
     const xKey = layoutAxisKey("x", rowNumber);
     const yKey = layoutAxisKey("y", rowNumber);
     const showXAxisTitle = rowNumber === rowCount;
-    const showXAxisTickLabels = rowNumber === rowCount;
 
     layout[xKey] = {
       ...(layout[xKey] || {}),
       domain: [0, 1],
       anchor: axisId("y", rowNumber),
       matches: rowNumber === 1 ? undefined : "x",
-      title: showXAxisTitle ? { text: "UT", font: { size: 13, color: colors.ink } } : { text: "" },
+      title: showXAxisTitle ? { text: "UT", font: { size: 14, color: colors.ink }, standoff: 18 } : { text: "" },
       showgrid: true,
       gridcolor: colors.grid,
       zeroline: false,
       showline: false,
-      ticks: "outside",
-      tickfont: { size: 13.5, color: colors.ink },
+      ticks: showXAxisTitle ? "outside" : "",
+      tickfont: { size: 13, color: colors.ink },
       automargin: true,
-      tickformat: "%H:%M<br>%b %-d",
-      nticks: 8,
-      showticklabels: showXAxisTickLabels
+      tickformat: showXAxisTitle ? "%H:%M<br>%b %-d, %Y" : "%H:%M",
+      showticklabels: showXAxisTitle,
+      nticks: showXAxisTitle ? 8 : undefined
     };
 
     layout[yKey] = {
       ...(layout[yKey] || {}),
       domain: domains[rowNumber - 1],
       anchor: axisId("x", rowNumber),
-      title: { text: yTitle, font: { size: 14.5, color: colors.ink } },
+      title: { text: yTitle, font: { size: 14, color: colors.ink }, standoff: 10 },
       showgrid: true,
       gridcolor: colors.grid,
       zeroline: false,
       showline: false,
       ticks: "outside",
-      tickfont: { size: 13.5, color: colors.ink },
+      tickfont: { size: 12.5, color: colors.ink },
       automargin: true,
       rangemode: options.rangemode || "normal"
     };
 
     layout.annotations.push({
       x: 0.5,
-      y: domains[rowNumber - 1][1] + 0.014,
+      y: Math.min(1.0, domains[rowNumber - 1][1] + 0.032),
       xref: "paper",
       yref: "paper",
       xanchor: "center",
@@ -819,7 +817,7 @@ function plotRun(run) {
       const thetaAxisId = axisId("y", thetaAxisNumber);
       const thetaLayoutKey = layoutAxisKey("y", thetaAxisNumber);
       layout[thetaLayoutKey] = {
-        title: { text: "θ", font: { size: 13.5, color: colors.teal } },
+        title: { text: "θ", font: { size: 14, color: colors.teal }, standoff: 10 },
         overlaying: axisId("y", rowNumber),
         side: "right",
         range: [0, 1],
@@ -827,7 +825,7 @@ function plotRun(run) {
         zeroline: false,
         showline: false,
         ticks: "outside",
-        tickfont: { size: 13.5, color: colors.teal },
+        tickfont: { size: 13, color: colors.teal },
         automargin: true
       };
 
@@ -880,13 +878,11 @@ function plotRun(run) {
   if (layout.showlegend) {
     layout.legend = {
       orientation: "h",
-      x: 0.5,
-      y: 1.17,
-      xanchor: "center",
+      x: 0,
+      y: 1.13,
+      xanchor: "left",
       yanchor: "bottom",
-      font: { size: 13.5 },
-      bgcolor: "rgba(255,255,255,0.78)",
-      borderwidth: 0
+      font: { size: 13 }
     };
   }
 
@@ -915,15 +911,15 @@ function calculateYDomains(rowCount, gap = 0.045) {
   return domains;
 }
 
-function makeCombinedPlotLayout(colors, rowCount, plotHeight) {
+function makeCombinedPlotLayout(colors, rowCount) {
   return {
     autosize: true,
-    height: plotHeight || Math.max(520, 180 * rowCount + 120),
-    margin: { l: 78, r: 74, t: 86, b: 72 },
+    height: Math.max(520, 185 * rowCount + 110),
+    margin: { l: 76, r: 70, t: 76, b: 74 },
     paper_bgcolor: "white",
     plot_bgcolor: "white",
     hovermode: "x unified",
-    font: { family: "Inter, Arial, sans-serif", size: 14, color: colors.ink },
+    font: { family: "Inter, Arial, sans-serif", size: 13, color: colors.ink },
     annotations: [],
     showlegend: false
   };
