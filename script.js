@@ -244,135 +244,214 @@ function downsampleRows(rows, maxPoints = 12000) {
   return sample;
 }
 
+function panelBaseLayout(titleText, yTitle, showXAxisTitle = false) {
+  const gridColor = "rgba(120,110,96,0.20)";
+  const axisColor = "rgba(55,55,55,0.75)";
+
+  return {
+    title: {
+      text: titleText,
+      x: 0.01,
+      xanchor: "left",
+      y: 0.98,
+      yanchor: "top",
+      font: { size: 14, color: "#1f2328" }
+    },
+    margin: { t: 38, r: 72, b: showXAxisTitle ? 48 : 22, l: 78 },
+    paper_bgcolor: "white",
+    plot_bgcolor: "white",
+    xaxis: {
+      title: showXAxisTitle ? "UT" : "",
+      showticklabels: showXAxisTitle,
+      showgrid: false,
+      zeroline: false,
+      linecolor: axisColor,
+      linewidth: 1,
+      mirror: true,
+      ticks: "outside",
+      tickfont: { size: 11 }
+    },
+    yaxis: {
+      title: yTitle,
+      showgrid: true,
+      gridcolor: gridColor,
+      zeroline: false,
+      linecolor: axisColor,
+      linewidth: 1,
+      mirror: true,
+      ticks: "outside",
+      tickfont: { size: 11 }
+    },
+    hovermode: "x unified",
+    showlegend: false
+  };
+}
+
+function ensurePlotPanels() {
+  selectors.plot.classList.remove("plot-placeholder");
+  selectors.plot.classList.add("plot-grid");
+  selectors.plot.innerHTML = `
+    <div id="plotPanelVbs" class="plot-panel"></div>
+    <div id="plotPanelITheta" class="plot-panel"></div>
+    <div id="plotPanelI1" class="plot-panel"></div>
+  `;
+
+  return {
+    vbs: document.getElementById("plotPanelVbs"),
+    iTheta: document.getElementById("plotPanelITheta"),
+    i1: document.getElementById("plotPanelI1")
+  };
+}
+
+function linkPlotXAxes(panels) {
+  let syncing = false;
+  const panelList = Object.values(panels);
+
+  panelList.forEach(source => {
+    source.on("plotly_relayout", eventData => {
+      if (syncing) return;
+
+      let update = null;
+      if (eventData["xaxis.range[0]"] !== undefined && eventData["xaxis.range[1]"] !== undefined) {
+        update = {
+          "xaxis.range": [eventData["xaxis.range[0]"], eventData["xaxis.range[1]"]],
+          "xaxis.autorange": false
+        };
+      } else if (eventData["xaxis.autorange"] === true) {
+        update = { "xaxis.autorange": true };
+      }
+
+      if (!update) return;
+
+      syncing = true;
+      Promise.all(panelList.filter(target => target !== source).map(target => Plotly.relayout(target, update)))
+        .finally(() => { syncing = false; });
+    });
+  });
+}
+
 function plotResults(rows) {
   const plotRows = downsampleRows(rows);
   const x = plotRows.map(row => row.timeISO);
 
   const vbs = plotRows.map(row => Number(row.Vbs));
-  const I = plotRows.map(row => Number(row.I));
+  const I_kA = plotRows.map(row => Number(row.I) / 1000);
   const theta = plotRows.map(row => Number(row.Theta));
-  const I1 = plotRows.map(row => Number(row.I1));
+  const I1_kA = plotRows.map(row => Number(row.I1) / 1000);
+  const Ic_kA = Number.isFinite(state.lastIc) ? state.lastIc / 1000 : Number(rows[0]?.Ic) / 1000;
 
-  const traces = [
-    {
-      x,
-      y: vbs,
-      type: "scatter",
-      mode: "lines",
-      name: "vB_s",
-      xaxis: "x",
-      yaxis: "y",
-      hovertemplate: "%{x}<br>vB_s: %{y:.5g}<extra></extra>"
-    },
-    {
-      x,
-      y: I,
-      type: "scatter",
-      mode: "lines",
-      name: "I",
-      xaxis: "x2",
-      yaxis: "y2",
-      hovertemplate: "%{x}<br>I: %{y:.5g}<extra></extra>"
-    },
-    {
-      x,
-      y: theta,
-      type: "scatter",
-      mode: "lines",
-      name: "Θ",
-      xaxis: "x2",
-      yaxis: "y3",
-      fill: "tozeroy",
-      fillcolor: "rgba(107, 78, 255, 0.18)",
-      line: { color: "rgba(107, 78, 255, 0.75)", width: 1.2 },
-      hovertemplate: "%{x}<br>Θ: %{y:.5g}<extra></extra>"
-    },
-    {
-      x,
-      y: I1,
-      type: "scatter",
-      mode: "lines",
-      name: "I1",
-      xaxis: "x3",
-      yaxis: "y4",
-      hovertemplate: "%{x}<br>I1: %{y:.5g}<extra></extra>"
-    }
-  ];
+  const panels = ensurePlotPanels();
 
-  selectors.plot.classList.remove("plot-placeholder");
   selectors.plotBadge.hidden = false;
   selectors.plotBadge.textContent = `${plotRows.length.toLocaleString()} plotted points`;
 
-  const gridColor = "rgba(120,110,96,0.18)";
-
-  Plotly.newPlot(selectors.plot, traces, {
-    margin: { t: 28, r: 78, b: 58, l: 78 },
-    paper_bgcolor: "rgba(255,255,255,0)",
-    plot_bgcolor: "rgba(255,255,255,0.72)",
-
-    xaxis: {
-      domain: [0, 1],
-      anchor: "y",
-      matches: "x3",
-      showticklabels: false,
-      gridcolor: gridColor,
-      zeroline: false
-    },
-    yaxis: {
-      domain: [0.72, 1.00],
-      title: "vB_s",
-      gridcolor: gridColor,
-      zeroline: false
-    },
-
-    xaxis2: {
-      domain: [0, 1],
-      anchor: "y2",
-      matches: "x3",
-      showticklabels: false,
-      gridcolor: gridColor,
-      zeroline: false
-    },
-    yaxis2: {
-      domain: [0.36, 0.66],
-      title: "I",
-      gridcolor: gridColor,
-      zeroline: false
-    },
-    yaxis3: {
-      overlaying: "y2",
-      side: "right",
-      title: "Θ",
-      range: [0, 1],
-      showgrid: false,
-      zeroline: false
-    },
-
-    xaxis3: {
-      domain: [0, 1],
-      anchor: "y4",
-      title: "UTC time",
-      gridcolor: gridColor,
-      zeroline: false
-    },
-    yaxis4: {
-      domain: [0.00, 0.30],
-      title: "I1",
-      gridcolor: gridColor,
-      zeroline: false
-    },
-
-    annotations: [
-      { text: "vB_s", xref: "paper", yref: "paper", x: 0, y: 1.035, showarrow: false, xanchor: "left", font: { size: 13 } },
-      { text: "I with Θ shaded", xref: "paper", yref: "paper", x: 0, y: 0.685, showarrow: false, xanchor: "left", font: { size: 13 } },
-      { text: "I1", xref: "paper", yref: "paper", x: 0, y: 0.325, showarrow: false, xanchor: "left", font: { size: 13 } }
-    ],
-    legend: { orientation: "h", y: -0.14 },
-    hovermode: "x unified"
-  }, {
+  const commonConfig = {
     responsive: true,
-    displaylogo: false
-  });
+    displaylogo: false,
+    modeBarButtonsToRemove: ["lasso2d", "select2d"]
+  };
+
+  const vbsTrace = {
+    x,
+    y: vbs,
+    type: "scatter",
+    mode: "lines",
+    name: "vB_s",
+    line: { color: "#222222", width: 1.5 },
+    hovertemplate: "%{x}<br>vB_s: %{y:.5g}<extra></extra>"
+  };
+
+  const vbsLayout = panelBaseLayout("(a) Solar wind input vB<sub>s</sub>", "vB_s", false);
+
+  const iTrace = {
+    x,
+    y: I_kA,
+    type: "scatter",
+    mode: "lines",
+    name: "I",
+    line: { color: "#222222", width: 1.7 },
+    hovertemplate: "%{x}<br>I: %{y:.5g} kA<extra></extra>"
+  };
+
+  const thetaTrace = {
+    x,
+    y: theta,
+    type: "scatter",
+    mode: "lines",
+    name: "Θ",
+    yaxis: "y2",
+    fill: "tozeroy",
+    fillcolor: "rgba(142, 195, 91, 0.28)",
+    line: { color: "rgba(104, 160, 56, 0.85)", width: 1.1 },
+    hovertemplate: "%{x}<br>Θ: %{y:.5g}<extra></extra>"
+  };
+
+  const iLayout = panelBaseLayout("(b) WINDMI magnetotail current I with trigger function Θ", "I (kA)", false);
+  iLayout.yaxis2 = {
+    title: "Θ",
+    overlaying: "y",
+    side: "right",
+    range: [0, 1],
+    showgrid: false,
+    zeroline: false,
+    linecolor: "rgba(55,55,55,0.75)",
+    linewidth: 1,
+    mirror: true,
+    ticks: "outside",
+    tickfont: { size: 11, color: "#5f8c2e" },
+    titlefont: { color: "#5f8c2e" }
+  };
+  iLayout.showlegend = true;
+  iLayout.legend = {
+    orientation: "h",
+    x: 0.01,
+    y: 1.18,
+    xanchor: "left",
+    yanchor: "top",
+    bgcolor: "rgba(255,255,255,0.75)"
+  };
+
+  if (Number.isFinite(Ic_kA)) {
+    iLayout.shapes = [{
+      type: "line",
+      xref: "paper",
+      x0: 0,
+      x1: 1,
+      yref: "y",
+      y0: Ic_kA,
+      y1: Ic_kA,
+      line: { color: "#2c7fb8", width: 1.4, dash: "dash" }
+    }];
+    iLayout.annotations = [{
+      xref: "paper",
+      yref: "y",
+      x: 0.985,
+      y: Ic_kA,
+      text: "I<sub>c</sub>",
+      showarrow: false,
+      xanchor: "right",
+      yanchor: "bottom",
+      font: { color: "#2c7fb8", size: 12 }
+    }];
+  }
+
+  const i1Trace = {
+    x,
+    y: I1_kA,
+    type: "scatter",
+    mode: "lines",
+    name: "I1",
+    line: { color: "#222222", width: 1.7 },
+    hovertemplate: "%{x}<br>I1: %{y:.5g} kA<extra></extra>"
+  };
+
+  const i1Layout = panelBaseLayout("(c) WINDMI R1 current I<sub>1</sub>", "I1 (kA)", true);
+
+  Promise.all([
+    Plotly.newPlot(panels.vbs, [vbsTrace], vbsLayout, commonConfig),
+    Plotly.newPlot(panels.iTheta, [thetaTrace, iTrace], iLayout, commonConfig),
+    Plotly.newPlot(panels.i1, [i1Trace], i1Layout, commonConfig)
+  ]).then(() => linkPlotXAxes(panels));
 }
 
 function summarize(rows, loadInfo, mode, Ic, segments) {
@@ -533,6 +612,7 @@ function clearResult() {
   selectors.summaryBox.hidden = true;
   selectors.plotBadge.hidden = true;
   selectors.plot.innerHTML = "The plot will appear here.";
+  selectors.plot.classList.remove("plot-grid");
   selectors.plot.classList.add("plot-placeholder");
   selectors.segmentsBox.textContent = "No result yet.";
   setStatus("Choose an OMNI CSV file and click <strong>Solve WINDMI</strong>.");
