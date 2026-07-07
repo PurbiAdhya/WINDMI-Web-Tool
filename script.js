@@ -16,7 +16,7 @@ function cacheSelectors() {
     "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours",
     "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
     "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "exportPlotBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
-    "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1"
+    "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1"
   ];
 
   ids.forEach(id => selectors[id] = document.getElementById(id));
@@ -123,6 +123,8 @@ function wireEvents() {
   selectors.runBtn.addEventListener("click", runModel);
   selectors.exportBtn.addEventListener("click", exportLatestRun);
   selectors.exportPlotBtn.addEventListener("click", exportPlotImage);
+  if (selectors.prevRangeBtn) selectors.prevRangeBtn.addEventListener("click", () => shiftDateRange(-1));
+  if (selectors.nextRangeBtn) selectors.nextRangeBtn.addEventListener("click", () => shiftDateRange(1));
   selectors.resetDefaultsBtn.addEventListener("click", resetDefaults);
   selectors.resetParamsBtn.addEventListener("click", resetNominalParameters);
   if (selectors.resetParamsBtnTop) {
@@ -155,12 +157,12 @@ function resetDefaults() {
   buildInitialInputs();
   const offRadio = document.querySelector("input[name='icModeRadio'][value='off']");
   if (offRadio) offRadio.checked = true;
-  selectors.icConstant.value = "20000000";
+  selectors.icConstant.value = "2000000";
   selectors.icPercentile.value = "70";
   updateTriggerVisibility();
   selectors.spinupHours.value = "2";
   selectors.interpolateMissing.checked = true;
-  selectors.maxGapMinutes.value = "30";
+  selectors.maxGapMinutes.value = "120";
   selectors.dataPathPattern.value = "data/omni_{year}.csv";
   setDefaultTimes();
   showView("runView");
@@ -209,6 +211,24 @@ function parseUtcDatetimeLocal(value) {
 function toDatetimeLocalValueUTC(date) {
   const pad = number => String(number).padStart(2, "0");
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+}
+
+
+function shiftDateRange(direction) {
+  const start = parseUtcDatetimeLocal(selectors.startTime.value);
+  const end = parseUtcDatetimeLocal(selectors.endTime.value);
+  if (!start || !end || end <= start) {
+    setStatus("Enter a valid date range before using Previous range or Next range.", "warning");
+    return;
+  }
+
+  const durationMs = end.getTime() - start.getTime();
+  const newStart = new Date(start.getTime() + direction * durationMs);
+  const newEnd = new Date(end.getTime() + direction * durationMs);
+
+  selectors.startTime.value = toDatetimeLocalValueUTC(newStart);
+  selectors.endTime.value = toDatetimeLocalValueUTC(newEnd);
+  setStatus(`${direction > 0 ? "Next" : "Previous"} range selected. Click Run WINDMI to update the plot.`, "neutral");
 }
 
 function collectParams() {
@@ -272,7 +292,8 @@ async function runModel() {
       params,
       initialState,
       icMode: selectedTriggerMode(),
-      icConstant: Number(selectors.icConstant.value),
+      // UI input is in kA; WINDMI internals use A.
+      icConstant: Number(selectors.icConstant.value) * 1000,
       icPercentile: Number(selectors.icPercentile.value)
     });
 
@@ -485,7 +506,7 @@ function finalizeOmniRows(rows) {
 
   dedupeRowsInPlace(sorted);
 
-  const maxGapMinutes = Math.max(1, Number(selectors.maxGapMinutes.value) || 30);
+  const maxGapMinutes = Math.max(1, Number(selectors.maxGapMinutes.value) || 120);
 
   if (selectors.interpolateMissing.checked) {
     interpolateField(sorted, "bz", maxGapMinutes);
@@ -568,34 +589,58 @@ function plotRun(run) {
 
   const times = rows.map(row => row.time);
   const icKA = run.solution.meta.ic / 1000;
+  const vbsSmoothedKV = runningAverage(rows.map(row => row.vbs / 1000), 5);
+
+  const colors = {
+    navy: "#073763",
+    blue: "#0b4f8a",
+    teal: "#0f9fb3",
+    tealFill: "rgba(15, 159, 179, 0.22)",
+    orange: "#e67e22",
+    slate: "#56657a",
+    grid: "#e9eef5",
+    ink: "#111827"
+  };
 
   const baseLayout = {
     autosize: true,
-    margin: { l: 56, r: 52, t: 34, b: 28 },
+    margin: { l: 64, r: 58, t: 38, b: 36 },
     paper_bgcolor: "white",
     plot_bgcolor: "white",
     hovermode: "x unified",
-    font: { family: "Inter, Arial, sans-serif", size: 9.5, color: "#172033" },
+    font: { family: "Inter, Arial, sans-serif", size: 11.5, color: colors.ink },
     xaxis: {
-      title: { text: "UT", font: { size: 10 } },
+      title: { text: "UT", font: { size: 12, color: colors.ink } },
       showgrid: true,
-      gridcolor: "#eef2f8",
+      gridcolor: colors.grid,
       zeroline: false,
-      tickfont: { size: 8 },
+      showline: false,
+      mirror: false,
+      ticks: "outside",
+      tickfont: { size: 10.5, color: colors.ink },
       automargin: true
     },
     yaxis: {
       showgrid: true,
-      gridcolor: "#eef2f8",
+      gridcolor: colors.grid,
       zeroline: false,
-      tickfont: { size: 8 },
+      showline: false,
+      mirror: false,
+      ticks: "outside",
+      tickfont: { size: 10.5, color: colors.ink },
       automargin: true,
-      titlefont: { size: 10 }
+      titlefont: { size: 12, color: colors.ink }
     },
     showlegend: false
   };
 
-  const titleStyle = { x: 0.5, xanchor: "center", y: 0.96, yanchor: "top", font: { size: 13.5, color: "#082f63" } };
+  const titleStyle = {
+    x: 0.5,
+    xanchor: "center",
+    y: 0.98,
+    yanchor: "top",
+    font: { size: 15.5, color: colors.navy }
+  };
 
   const config = {
     responsive: true,
@@ -607,17 +652,17 @@ function plotRun(run) {
   Plotly.react(selectors.plotVbs, [
     {
       x: times,
-      y: rows.map(row => row.vbs / 1000),
+      y: vbsSmoothedKV,
       type: "scatter",
       mode: "lines",
-      name: "vBₛ",
-      line: { color: "#1f2937", width: 1.35 },
-      hovertemplate: "%{y:.3f} kV<extra>vBₛ</extra>"
+      name: "5-min running average vBₛ",
+      line: { color: colors.orange, width: 1.9 },
+      hovertemplate: "%{y:.3f} kV<extra>5-min vBₛ</extra>"
     }
   ], {
     ...baseLayout,
     title: { text: "<b>(a) Solar wind input vBₛ</b>", ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: "vBₛ (kV)", font: { size: 10 } } }
+    yaxis: { ...baseLayout.yaxis, title: { text: "vBₛ (kV)", font: { size: 12 } } }
   }, config);
 
   Plotly.react(selectors.plotITheta, [
@@ -629,8 +674,8 @@ function plotRun(run) {
       name: "θ",
       yaxis: "y2",
       fill: "tozeroy",
-      fillcolor: "rgba(112, 173, 71, 0.22)",
-      line: { color: "rgba(112, 173, 71, 0.42)", width: 0.45 },
+      fillcolor: colors.tealFill,
+      line: { color: "rgba(15, 159, 179, 0.48)", width: 0.9 },
       hovertemplate: "%{y:.3f}<extra>θ</extra>"
     },
     {
@@ -639,7 +684,7 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "I",
-      line: { color: "#111827", width: 1.35 },
+      line: { color: colors.navy, width: 1.8 },
       hovertemplate: "%{y:.3f} kA<extra>I</extra>"
     },
     {
@@ -648,21 +693,24 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "I<sub>c</sub>",
-      line: { color: "#2563eb", width: 1, dash: "dash" },
+      line: { color: colors.slate, width: 1.15, dash: "dash" },
       hovertemplate: `%{y:.3f} kA<extra>I<sub>c</sub></extra>`
     }
   ], {
     ...baseLayout,
     title: { text: "<b>(b) WINDMI magnetotail current I and trigger θ</b>", ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: "I (kA)", font: { size: 10 } } },
+    yaxis: { ...baseLayout.yaxis, title: { text: "I (kA)", font: { size: 12 } } },
     yaxis2: {
-      title: { text: "θ", font: { size: 10 } },
+      title: { text: "θ", font: { size: 12, color: colors.teal } },
       overlaying: "y",
       side: "right",
       range: [0, 1],
       showgrid: false,
       zeroline: false,
-      tickfont: { size: 8 },
+      showline: false,
+      mirror: false,
+      ticks: "outside",
+      tickfont: { size: 10.5, color: colors.teal },
       automargin: true
     }
   }, config);
@@ -674,22 +722,13 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "I₁",
-      line: { color: "#111827", width: 1.35 },
+      line: { color: colors.blue, width: 1.8 },
       hovertemplate: "%{y:.3f} kA<extra>I₁</extra>"
-    },
-    {
-      x: times,
-      y: rows.map(() => icKA),
-      type: "scatter",
-      mode: "lines",
-      name: "I<sub>c</sub>",
-      line: { color: "#2563eb", width: 1, dash: "dash" },
-      hovertemplate: `%{y:.3f} kA<extra>I<sub>c</sub></extra>`
     }
   ], {
     ...baseLayout,
     title: { text: "<b>(c) WINDMI R1 current I₁</b>", ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: "I₁ (kA)", font: { size: 10 } } }
+    yaxis: { ...baseLayout.yaxis, title: { text: "I₁ (kA)", font: { size: 12 } } }
   }, config);
 
   selectors.runSummary.innerHTML = "";
@@ -697,6 +736,25 @@ function plotRun(run) {
 
   attachPlotSync();
 }
+
+function runningAverage(values, windowSize = 5) {
+  const halfWindow = Math.floor(windowSize / 2);
+  return values.map((_, index) => {
+    let sum = 0;
+    let count = 0;
+    const start = Math.max(0, index - halfWindow);
+    const end = Math.min(values.length - 1, index + halfWindow);
+    for (let i = start; i <= end; i += 1) {
+      const value = Number(values[i]);
+      if (Number.isFinite(value)) {
+        sum += value;
+        count += 1;
+      }
+    }
+    return count ? sum / count : null;
+  });
+}
+
 function attachPlotSync() {
   const divs = [selectors.plotVbs, selectors.plotITheta, selectors.plotI1];
   divs.forEach(source => {

@@ -47,6 +47,10 @@
                 <label for="endTime">End date and time (UTC)</label>
                 <input id="endTime" type="datetime-local" />
               </div>
+              <div class="range-actions" aria-label="Move date range">
+                <button id="prevRangeBtn" class="secondary" type="button">Previous range</button>
+                <button id="nextRangeBtn" class="secondary" type="button">Next range</button>
+              </div>
             </section>
 
             <section class="plain-section" aria-labelledby="triggerHeading">
@@ -59,7 +63,7 @@
                     <input type="radio" name="icModeRadio" value="off" checked />
                     <span>
                       <strong>Trigger off</strong>
-                      <small>Sets I<sub>c</sub> = 1e8, so the trigger never turns on.</small>
+                      <small>Sets I<sub>c</sub> = 1e8 A internally, so the trigger never turns on.</small>
                     </span>
                   </span>
                 </label>
@@ -70,8 +74,8 @@
                     <span><strong>Constant I<sub>c</sub></strong></span>
                   </span>
                   <span class="side-input">
-                    <span>I<sub>c</sub> (A)</span>
-                    <input id="icConstant" type="number" step="1000" value="20000000" />
+                    <span>I<sub>c</sub> (kA)</span>
+                    <input id="icConstant" type="number" step="10000" value="2000000" />
                   </span>
                 </label>
 
@@ -201,7 +205,7 @@
 
             <div class="field">
               <label for="maxGapMinutes">Maximum gap to interpolate (minutes)</label>
-              <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30" />
+              <input id="maxGapMinutes" type="number" min="1" max="240" step="1" value="120" />
             </div>
           </div>
         </section>
