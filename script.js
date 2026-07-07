@@ -15,7 +15,7 @@ function cacheSelectors() {
   const ids = [
     "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours",
     "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
-    "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
+    "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "exportPlotBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
     "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1"
   ];
 
@@ -122,6 +122,7 @@ function wireEvents() {
 
   selectors.runBtn.addEventListener("click", runModel);
   selectors.exportBtn.addEventListener("click", exportLatestRun);
+  selectors.exportPlotBtn.addEventListener("click", exportPlotImage);
   selectors.resetDefaultsBtn.addEventListener("click", resetDefaults);
   selectors.resetParamsBtn.addEventListener("click", resetNominalParameters);
   if (selectors.resetParamsBtnTop) {
@@ -233,6 +234,7 @@ async function runModel() {
   try {
     selectors.runBtn.disabled = true;
     selectors.exportBtn.disabled = true;
+    selectors.exportPlotBtn.disabled = true;
     latestRun = null;
 
     const start = parseUtcDatetimeLocal(selectors.startTime.value);
@@ -289,6 +291,7 @@ async function runModel() {
     await new Promise(resolve => setTimeout(resolve, 60));
     plotRun(latestRun);
     selectors.exportBtn.disabled = false;
+    selectors.exportPlotBtn.disabled = false;
 
     setStatus(
       `Done.\n` +
@@ -565,32 +568,39 @@ function plotRun(run) {
 
   const times = rows.map(row => row.time);
   const icKA = run.solution.meta.ic / 1000;
-  const titleDate = formatDateRange(run.start, run.end);
 
   const baseLayout = {
     autosize: true,
-    margin: { l: 70, r: 70, t: 48, b: 44 },
+    margin: { l: 56, r: 52, t: 34, b: 28 },
     paper_bgcolor: "white",
     plot_bgcolor: "white",
     hovermode: "x unified",
-    font: { family: "Inter, Arial, sans-serif", size: 12, color: "#172033" },
+    font: { family: "Inter, Arial, sans-serif", size: 9.5, color: "#172033" },
     xaxis: {
-      title: "UT",
+      title: { text: "UT", font: { size: 10 } },
       showgrid: true,
-      gridcolor: "#edf1f7",
-      zeroline: false
+      gridcolor: "#eef2f8",
+      zeroline: false,
+      tickfont: { size: 8 },
+      automargin: true
     },
     yaxis: {
       showgrid: true,
-      gridcolor: "#edf1f7",
-      zeroline: false
+      gridcolor: "#eef2f8",
+      zeroline: false,
+      tickfont: { size: 8 },
+      automargin: true,
+      titlefont: { size: 10 }
     },
-    legend: { orientation: "h", x: 0, y: 1.18, xanchor: "left" }
+    showlegend: false
   };
+
+  const titleStyle = { x: 0.5, xanchor: "center", y: 0.96, yanchor: "top", font: { size: 13.5, color: "#082f63" } };
 
   const config = {
     responsive: true,
     displaylogo: false,
+    displayModeBar: false,
     modeBarButtonsToRemove: ["lasso2d", "select2d"]
   };
 
@@ -601,13 +611,13 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "vBₛ",
-      line: { color: "#1f2937", width: 1.8 },
+      line: { color: "#1f2937", width: 1.35 },
       hovertemplate: "%{y:.3f} kV<extra>vBₛ</extra>"
     }
   ], {
     ...baseLayout,
-    title: { text: `(a) Solar wind input vBₛ — ${titleDate}`, x: 0.02, xanchor: "left", font: { size: 14 } },
-    yaxis: { ...baseLayout.yaxis, title: "vBₛ (kV)" }
+    title: { text: "<b>(a) Solar wind input vBₛ</b>", ...titleStyle },
+    yaxis: { ...baseLayout.yaxis, title: { text: "vBₛ (kV)", font: { size: 10 } } }
   }, config);
 
   Plotly.react(selectors.plotITheta, [
@@ -620,7 +630,7 @@ function plotRun(run) {
       yaxis: "y2",
       fill: "tozeroy",
       fillcolor: "rgba(112, 173, 71, 0.22)",
-      line: { color: "rgba(112, 173, 71, 0.45)", width: 0.5 },
+      line: { color: "rgba(112, 173, 71, 0.42)", width: 0.45 },
       hovertemplate: "%{y:.3f}<extra>θ</extra>"
     },
     {
@@ -629,7 +639,7 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "I",
-      line: { color: "#111827", width: 1.8 },
+      line: { color: "#111827", width: 1.35 },
       hovertemplate: "%{y:.3f} kA<extra>I</extra>"
     },
     {
@@ -638,20 +648,22 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "I<sub>c</sub>",
-      line: { color: "#2563eb", width: 1.3, dash: "dash" },
+      line: { color: "#2563eb", width: 1, dash: "dash" },
       hovertemplate: `%{y:.3f} kA<extra>I<sub>c</sub></extra>`
     }
   ], {
     ...baseLayout,
-    title: { text: `(b) WINDMI magnetotail current I and trigger θ`, x: 0.02, xanchor: "left", font: { size: 14 } },
-    yaxis: { ...baseLayout.yaxis, title: "I (kA)" },
+    title: { text: "<b>(b) WINDMI magnetotail current I and trigger θ</b>", ...titleStyle },
+    yaxis: { ...baseLayout.yaxis, title: { text: "I (kA)", font: { size: 10 } } },
     yaxis2: {
-      title: "θ",
+      title: { text: "θ", font: { size: 10 } },
       overlaying: "y",
       side: "right",
       range: [0, 1],
       showgrid: false,
-      zeroline: false
+      zeroline: false,
+      tickfont: { size: 8 },
+      automargin: true
     }
   }, config);
 
@@ -662,7 +674,7 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "I₁",
-      line: { color: "#111827", width: 1.8 },
+      line: { color: "#111827", width: 1.35 },
       hovertemplate: "%{y:.3f} kA<extra>I₁</extra>"
     },
     {
@@ -671,25 +683,20 @@ function plotRun(run) {
       type: "scatter",
       mode: "lines",
       name: "I<sub>c</sub>",
-      line: { color: "#2563eb", width: 1.3, dash: "dash" },
+      line: { color: "#2563eb", width: 1, dash: "dash" },
       hovertemplate: `%{y:.3f} kA<extra>I<sub>c</sub></extra>`
     }
   ], {
     ...baseLayout,
-    title: { text: `(c) WINDMI R1 current I₁`, x: 0.02, xanchor: "left", font: { size: 14 } },
-    yaxis: { ...baseLayout.yaxis, title: "I₁ (kA)" }
+    title: { text: "<b>(c) WINDMI R1 current I₁</b>", ...titleStyle },
+    yaxis: { ...baseLayout.yaxis, title: { text: "I₁ (kA)", font: { size: 10 } } }
   }, config);
 
-  selectors.runSummary.innerHTML = `
-    <strong>${formatUtc(run.start)} to ${formatUtc(run.end)}</strong><br />
-    Source: ${run.loadInfo.sourceLabel}<br />
-    I<sub>c</sub>: ${(run.solution.meta.ic / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} kA<br />
-    Points: ${rows.length.toLocaleString()}
-  `;
+  selectors.runSummary.innerHTML = "";
+  selectors.runSummary.classList.add("hidden");
 
   attachPlotSync();
 }
-
 function attachPlotSync() {
   const divs = [selectors.plotVbs, selectors.plotITheta, selectors.plotI1];
   divs.forEach(source => {
@@ -764,3 +771,64 @@ function formatDateRange(start, end) {
 
   return `${start.toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}–${end.toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}`;
 }
+
+
+async function exportPlotImage() {
+  if (!latestRun || !latestRun.plotted.length) return;
+
+  try {
+    selectors.exportPlotBtn.disabled = true;
+    selectors.exportPlotBtn.textContent = "Preparing PNG...";
+
+    const divs = [selectors.plotVbs, selectors.plotITheta, selectors.plotI1];
+    const images = [];
+
+    for (const div of divs) {
+      const url = await Plotly.toImage(div, {
+        format: "png",
+        width: Math.max(900, div.clientWidth || 900),
+        height: div.clientHeight || 150,
+        scale: 2
+      });
+      images.push(await loadImage(url));
+    }
+
+    const padding = 24;
+    const gap = 16;
+    const width = Math.max(...images.map(img => img.width)) + padding * 2;
+    const height = images.reduce((sum, img) => sum + img.height, 0) + gap * (images.length - 1) + padding * 2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+
+    let y = padding;
+    for (const img of images) {
+      ctx.drawImage(img, padding, y);
+      y += img.height + gap;
+    }
+
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `windmi_plot_${formatUtc(latestRun.start).slice(0, 10)}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } finally {
+    selectors.exportPlotBtn.disabled = false;
+    selectors.exportPlotBtn.textContent = "Export plot PNG";
+  }
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+

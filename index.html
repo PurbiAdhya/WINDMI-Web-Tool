@@ -96,7 +96,6 @@
 
             <div class="button-row vertical-actions">
               <button id="runBtn" type="button">Run WINDMI</button>
-              <button id="exportBtn" class="secondary" type="button" disabled>Export plotted output CSV</button>
               <button id="resetParamsBtn" class="ghost" type="button">Reset to nominal parameters</button>
               <button id="resetDefaultsBtn" class="ghost" type="button">Reset all setup</button>
             </div>
@@ -109,11 +108,14 @@
               <div>
                 <p class="eyebrow">WINDMI output</p>
                 <h2 id="plotHeading">Output plot</h2>
-                <p>I and I<sub>1</sub> are not normalized. Theta is shown as a shaded trace on the right axis in the middle panel.</p>
+              </div>
+              <div class="plot-actions">
+                <button id="exportPlotBtn" class="secondary" type="button" disabled>Export plot PNG</button>
+                <button id="exportBtn" class="secondary" type="button" disabled>Export CSV</button>
               </div>
             </div>
 
-            <div id="runSummary" class="run-summary">No run yet.</div>
+            <div id="runSummary" class="run-summary hidden" aria-live="polite"></div>
 
             <div class="plot-stack">
               <div id="plotVbs" class="plot-panel"></div>
