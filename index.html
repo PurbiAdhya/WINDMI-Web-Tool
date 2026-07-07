@@ -3,138 +3,173 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>windmi web tool</title>
+  <title>WINDMI Web Tool</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
-  <header class="hero full-width">
-    <div>
-      <p class="eyebrow">Browser-based WINDMI solver</p>
-      <h1>windmi web tool</h1>
-      <p class="lede">
-        Load OMNI 1-minute data, choose a UTC interval, solve the WINDMI model in the browser,
-        and view the results in linked Plotly panels.
-      </p>
+  <header class="site-header full-width">
+    <div class="brand-bar">
+      <a class="brand" href="#" aria-label="WINDMI Web Tool home">
+        <img src="assets/windmi-logo.png" alt="WINDMI logo" class="brand-logo" />
+        <div class="brand-copy">
+          <span class="brand-title">WINDMI Web Tool</span>
+          <span class="brand-subtitle">Solar wind → magnetosphere → ionosphere</span>
+        </div>
+      </a>
+      <div class="header-pills" aria-label="App highlights">
+        <span>GitHub Pages ready</span>
+        <span>No backend</span>
+        <span>OMNI 1-min</span>
+      </div>
     </div>
+
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <p class="eyebrow">Browser-based WINDMI solver</p>
+        <h1>Run WINDMI from OMNI data in your browser.</h1>
+        <p class="lede">
+          Load yearly OMNI files or upload a CSV, choose a UTC interval, solve the 8-state WINDMI model,
+          and inspect linked Plotly panels for vB<sub>s</sub>, I, θ, and I<sub>1</sub>.
+        </p>
+      </div>
+      <div class="workflow-card" aria-label="Workflow summary">
+        <div class="workflow-step"><span>1</span><strong>Choose data</strong><em>Built-in yearly files or uploaded CSV</em></div>
+        <div class="workflow-line"></div>
+        <div class="workflow-step"><span>2</span><strong>Set model</strong><em>I<sub>c</sub>, trigger mode, parameters</em></div>
+        <div class="workflow-line"></div>
+        <div class="workflow-step"><span>3</span><strong>Run + plot</strong><em>Three linked scientific panels</em></div>
+      </div>
+    </section>
   </header>
 
   <main class="shell full-width">
     <section id="setupPage" class="page active">
-      <div class="setup-grid">
-        <section class="card setup-card data-card">
-          <div class="card-title-row compact-title">
-            <div>
-              <h2>OMNI data and date range</h2>
-              <p>Use yearly OMNI files in <code>data/</code>, or upload one CSV manually.</p>
+      <div class="workspace setup-workspace">
+        <aside class="control-panel card">
+          <div class="section-kicker">Setup</div>
+          <h2>Data, time range, and trigger</h2>
+          <p class="card-note">Start here. The app only loads the yearly files needed for the selected interval and spin-up.</p>
+
+          <div class="control-section">
+            <div class="control-section-title">OMNI data</div>
+            <fieldset class="field radio-card compact-fieldset">
+              <legend>Data source</legend>
+              <label><input type="radio" name="dataSource" value="repo" checked /> Built-in yearly files from repository</label>
+              <label><input type="radio" name="dataSource" value="upload" /> Upload one OMNI CSV file</label>
+            </fieldset>
+
+            <div class="field" id="uploadFieldWrap">
+              <label for="fileInput">OMNI CSV file input</label>
+              <input id="fileInput" type="file" accept=".csv,.txt" />
+              <p class="hint">Used only when upload mode is selected.</p>
             </div>
-            <button id="resetDefaultsBtn" class="secondary small" type="button">Reset setup</button>
           </div>
 
-          <fieldset class="field radio-card">
-            <legend>Data source</legend>
-            <label><input type="radio" name="dataSource" value="repo" checked /> Built-in yearly files from repository</label>
-            <label><input type="radio" name="dataSource" value="upload" /> Upload one OMNI CSV file</label>
-            <p class="hint">Built-in mode loads only the year files needed for the selected interval and spin-up.</p>
-          </fieldset>
-
-          <div class="field" id="uploadFieldWrap">
-            <label for="fileInput">OMNI CSV file input</label>
-            <input id="fileInput" type="file" accept=".csv,.txt" />
-            <p class="hint">Used only when “Upload one OMNI CSV file” is selected.</p>
-          </div>
-
-          <div class="grid two date-grid">
+          <div class="control-section">
+            <div class="control-section-title">UTC interval</div>
+            <div class="grid two compact-grid date-grid">
+              <div class="field">
+                <label for="startTime">Start time</label>
+                <input id="startTime" type="datetime-local" />
+              </div>
+              <div class="field">
+                <label for="endTime">End time</label>
+                <input id="endTime" type="datetime-local" />
+              </div>
+            </div>
             <div class="field">
-              <label for="startTime">Start time (UTC)</label>
-              <input id="startTime" type="datetime-local" />
-            </div>
-            <div class="field">
-              <label for="endTime">End time (UTC)</label>
-              <input id="endTime" type="datetime-local" />
+              <label for="spinupHours">Spin-up before start (hours)</label>
+              <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2" />
+              <p class="hint">Spin-up can require the previous year file near Jan 1.</p>
             </div>
           </div>
 
-          <div class="field">
-            <label for="spinupHours">Spin-up before start (hours)</label>
-            <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2" />
-            <p class="hint">Spin-up can require the previous year file when the selected interval starts near Jan 1.</p>
-          </div>
-        </section>
-
-        <section class="card setup-card trigger-card">
-          <h2>Trigger conditions</h2>
-          <p class="card-note">Choose how the threshold current <span class="math-label">I<sub>c</sub></span> is set.</p>
-
-          <div class="grid three trigger-grid">
+          <div class="control-section trigger-block">
+            <div class="control-section-title">Trigger conditions</div>
             <div class="field">
               <label for="icMode">Trigger mode</label>
               <select id="icMode">
-                <option value="constant">Constant I_c</option>
-                <option value="percentile" selected>Triggered percentile I_c</option>
+                <option value="constant">Constant Ic</option>
+                <option value="percentile" selected>Triggered percentile Ic</option>
               </select>
             </div>
-            <div class="field">
-              <label for="icConstant">Constant / prepass <span>I<sub>c</sub></span> (A)</label>
-              <input id="icConstant" type="number" step="1000" value="20000000" />
-            </div>
-            <div class="field">
-              <label for="icPercentile">Trigger percentile</label>
-              <input id="icPercentile" type="number" min="0" max="100" step="1" value="70" />
+            <div class="grid two compact-grid trigger-grid">
+              <div class="field">
+                <label for="icConstant">Constant / prepass I<sub>c</sub> (A)</label>
+                <input id="icConstant" type="number" step="1000" value="20000000" />
+              </div>
+              <div class="field">
+                <label for="icPercentile">Trigger percentile</label>
+                <input id="icPercentile" type="number" min="0" max="100" step="1" value="70" />
+              </div>
             </div>
           </div>
+
+          <div class="actions run-actions sticky-actions">
+            <button id="runBtn" type="button">Run WINDMI</button>
+            <button id="resetDefaultsBtn" class="secondary" type="button">Reset setup</button>
+          </div>
+
+          <div id="statusBox" class="status neutral">Ready.</div>
+        </aside>
+
+        <section class="main-panel">
+          <section class="card quick-card">
+            <div>
+              <div class="section-kicker">Configuration</div>
+              <h2>Model setup</h2>
+              <p class="card-note">Tune the nominal WINDMI parameters, initial conditions, and data handling before running the model.</p>
+            </div>
+            <button id="resetParamsBtn" class="secondary small" type="button">Reset to nominal parameters</button>
+          </section>
+
+          <section class="card model-card">
+            <details class="details-block" open>
+              <summary>Model parameters</summary>
+              <div class="details-heading-row">
+                <p class="hint">
+                  Each numeric spinner changes the parameter by 10% of its nominal/default value. The reset button restores the current default parameter set.
+                </p>
+              </div>
+              <div id="parameterGrid" class="grid four parameter-grid"></div>
+            </details>
+
+            <details class="details-block" open>
+              <summary>Initial conditions</summary>
+              <p class="hint">All initial conditions are grouped here because the original Simulink initial state was not included with the MATLAB script.</p>
+              <div id="initialGrid" class="grid four parameter-grid"></div>
+            </details>
+
+            <details class="details-block">
+              <summary>Data handling</summary>
+              <div class="grid three data-handling-grid">
+                <label class="checkbox-line">
+                  <input id="interpolateMissing" type="checkbox" checked />
+                  Interpolate short gaps
+                </label>
+                <div class="field">
+                  <label for="maxGapMinutes">Maximum gap to interpolate (minutes)</label>
+                  <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30" />
+                </div>
+                <div class="field">
+                  <label for="dataPathPattern">Built-in data path pattern</label>
+                  <input id="dataPathPattern" type="text" value="data/omni_{year}.csv" />
+                </div>
+              </div>
+            </details>
+          </section>
         </section>
       </div>
-
-      <section class="card model-card">
-        <details class="details-block" open>
-          <summary>Model parameters</summary>
-          <div class="details-heading-row">
-            <p class="hint">
-              Use the spinner arrows to change each parameter by 10% of its nominal/default value.
-            </p>
-            <button id="resetParamsBtn" class="secondary small" type="button">Reset to nominal parameters</button>
-          </div>
-          <div id="parameterGrid" class="grid four parameter-grid"></div>
-        </details>
-
-        <details class="details-block">
-          <summary>Initial conditions</summary>
-          <p class="hint">These are grouped together because the original Simulink initial conditions were not included with the MATLAB script.</p>
-          <div id="initialGrid" class="grid four parameter-grid"></div>
-        </details>
-
-        <details class="details-block">
-          <summary>Data handling</summary>
-          <div class="grid three">
-            <label class="checkbox-line">
-              <input id="interpolateMissing" type="checkbox" checked />
-              Interpolate short gaps
-            </label>
-            <div class="field">
-              <label for="maxGapMinutes">Maximum gap to interpolate (minutes)</label>
-              <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30" />
-            </div>
-            <div class="field">
-              <label for="dataPathPattern">Built-in data path pattern</label>
-              <input id="dataPathPattern" type="text" value="data/omni_{year}.csv" />
-            </div>
-          </div>
-        </details>
-
-        <div class="actions run-actions">
-          <button id="runBtn" type="button">Run WINDMI</button>
-        </div>
-
-        <div id="statusBox" class="status neutral">Ready.</div>
-      </section>
     </section>
 
     <section id="plotPage" class="page">
       <section class="card plot-card full-plot-card">
         <div class="plot-header">
-          <div>
+          <div class="plot-title-block">
             <p class="eyebrow mini">WINDMI output</p>
             <h2>Model result plots</h2>
             <p>
@@ -150,9 +185,11 @@
 
         <div id="runSummary" class="run-summary wide">No run yet.</div>
 
-        <div id="plotVbs" class="plot-panel"></div>
-        <div id="plotITheta" class="plot-panel"></div>
-        <div id="plotI1" class="plot-panel"></div>
+        <div class="plot-stack">
+          <div id="plotVbs" class="plot-panel"></div>
+          <div id="plotITheta" class="plot-panel"></div>
+          <div id="plotI1" class="plot-panel"></div>
+        </div>
       </section>
     </section>
   </main>
