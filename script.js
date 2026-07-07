@@ -15,7 +15,7 @@ function cacheSelectors() {
   const ids = [
     "setupPage", "plotPage", "backToSetupBtn",
     "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours", "icMode",
-    "icConstant", "icPercentile", "parameterGrid", "initialGrid", "interpolateMissing",
+    "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
     "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "resetDefaultsBtn", "resetParamsBtn",
     "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1"
   ];
@@ -25,9 +25,14 @@ function cacheSelectors() {
 
 function buildParameterInputs() {
   selectors.parameterGrid.innerHTML = "";
+  if (selectors.quickParameterGrid) selectors.quickParameterGrid.innerHTML = "";
+
+  const quickKeys = new Set(["L", "C", "sigma"]);
+
   WINDMI_PARAM_META.forEach(([key, label, units]) => {
     const nominalValue = WINDMI_DEFAULT_PARAMS[key];
     const stepValue = nominalStep(nominalValue);
+
     const wrap = document.createElement("div");
     wrap.className = "field param-field";
     wrap.innerHTML = `
@@ -36,6 +41,34 @@ function buildParameterInputs() {
       <span class="param-step-hint">step: ${formatStepForDisplay(stepValue)}</span>
     `;
     selectors.parameterGrid.appendChild(wrap);
+
+    if (selectors.quickParameterGrid && quickKeys.has(key)) {
+      const quickWrap = document.createElement("div");
+      quickWrap.className = "field param-field quick-param-field";
+      quickWrap.innerHTML = `
+        <label for="quick-param-${key}">${label} ${units ? `<span class="units">(${units})</span>` : ""}</label>
+        <input id="quick-param-${key}" data-quick-param-key="${key}" type="number" step="${stepValue}" value="${nominalValue}" title="Spinner step is 10% of the nominal value." />
+      `;
+      selectors.quickParameterGrid.appendChild(quickWrap);
+    }
+  });
+
+  wireParameterSync();
+}
+
+function wireParameterSync() {
+  document.querySelectorAll("[data-quick-param-key]").forEach(input => {
+    input.addEventListener("input", () => {
+      const full = document.querySelector(`[data-param-key="${input.dataset.quickParamKey}"]`);
+      if (full && full.value !== input.value) full.value = input.value;
+    });
+  });
+
+  document.querySelectorAll("[data-param-key]").forEach(input => {
+    input.addEventListener("input", () => {
+      const quick = document.querySelector(`[data-quick-param-key="${input.dataset.paramKey}"]`);
+      if (quick && quick.value !== input.value) quick.value = input.value;
+    });
   });
 }
 
@@ -76,6 +109,11 @@ function wireEvents() {
     input.addEventListener("change", updateSourceVisibility);
   });
 
+  document.querySelectorAll("input[name='icModeRadio']").forEach(input => {
+    input.addEventListener("change", updateTriggerVisibility);
+  });
+  updateTriggerVisibility();
+
   selectors.runBtn.addEventListener("click", runModel);
   selectors.exportBtn.addEventListener("click", exportLatestRun);
   selectors.resetDefaultsBtn.addEventListener("click", resetDefaults);
@@ -86,18 +124,31 @@ function wireEvents() {
 function updateSourceVisibility() {
   const source = selectedDataSource();
   selectors.uploadFieldWrap.style.opacity = source === "upload" ? "1" : "0.55";
+  selectors.fileInput.disabled = source !== "upload";
 }
 
 function selectedDataSource() {
   return document.querySelector("input[name='dataSource']:checked")?.value || "repo";
 }
 
+function selectedTriggerMode() {
+  return document.querySelector("input[name='icModeRadio']:checked")?.value || "off";
+}
+
+function updateTriggerVisibility() {
+  const mode = selectedTriggerMode();
+  if (selectors.icConstant) selectors.icConstant.disabled = mode === "off";
+  if (selectors.icPercentile) selectors.icPercentile.disabled = mode !== "percentile";
+}
+
 function resetDefaults() {
   buildParameterInputs();
   buildInitialInputs();
-  selectors.icMode.value = "percentile";
+  const offRadio = document.querySelector("input[name='icModeRadio'][value='off']");
+  if (offRadio) offRadio.checked = true;
   selectors.icConstant.value = "20000000";
   selectors.icPercentile.value = "70";
+  updateTriggerVisibility();
   selectors.spinupHours.value = "2";
   selectors.interpolateMissing.checked = true;
   selectors.maxGapMinutes.value = "30";
@@ -152,6 +203,9 @@ function collectParams() {
   document.querySelectorAll("[data-param-key]").forEach(input => {
     params[input.dataset.paramKey] = Number(input.value);
   });
+  document.querySelectorAll("[data-quick-param-key]").forEach(input => {
+    params[input.dataset.quickParamKey] = Number(input.value);
+  });
   return params;
 }
 
@@ -203,7 +257,7 @@ async function runModel() {
     const solution = solveWindmi(loadInfo.rows, {
       params,
       initialState,
-      icMode: selectors.icMode.value,
+      icMode: selectedTriggerMode(),
       icConstant: Number(selectors.icConstant.value),
       icPercentile: Number(selectors.icPercentile.value)
     });

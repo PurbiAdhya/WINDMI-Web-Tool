@@ -237,12 +237,16 @@ function runSingleWindmiPass(rows, params, initialState) {
 function solveWindmi(rows, options) {
   const paramsBase = cloneParams(options.params || {});
   const initialState = { ...WINDMI_DEFAULT_INITIAL, ...(options.initialState || {}) };
-  const icMode = options.icMode || "constant";
+  const icMode = options.icMode || "off";
   const icConstant = Number(options.icConstant);
   const icPercentile = Number(options.icPercentile);
 
   let finalIc = Number.isFinite(icConstant) ? icConstant : 2e7;
   let prepassOutput = null;
+
+  if (icMode === "off") {
+    finalIc = 1e8;
+  }
 
   if (icMode === "percentile") {
     const prepassParams = { ...paramsBase, Ic: finalIc };
