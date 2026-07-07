@@ -1,10 +1,8 @@
 # WINDMI Web Tool
 
-A browser-based WINDMI model runner for yearly OMNI CSV files.
+A browser-based WINDMI model viewer for OMNI yearly CSV files.
 
-## Final GitHub repo configuration
-
-Upload the full package structure to your GitHub repository:
+## Repository layout
 
 ```text
 WINDMI-Web-Tool/
@@ -27,35 +25,26 @@ WINDMI-Web-Tool/
     split_omni_by_year.py
 ```
 
-Your yearly OMNI files should be named exactly like:
+## Data files
+
+Put one OMNI CSV per year in `data/` using this naming pattern:
 
 ```text
 data/omni_2000.csv
 data/omni_2001.csv
 ```
 
-The page loads the needed year files automatically from the date range and spin-up settings.
+The app loads only the year files required by the selected UTC interval and spin-up period.
 
-## Interface layout
+## Main workflow
 
-Navigation:
+1. Open **Run WINDMI**.
+2. Choose a UTC start and end time.
+3. Choose trigger behavior:
+   - Trigger off
+   - Constant Ic in kA
+   - Variable Ic using a percentile
+4. Adjust L, C, or Sigma only if needed.
+5. Click **Run WINDMI**.
 
-1. **Run WINDMI** — date range, trigger settings, quick parameters, and output plot.
-2. **Model Parameters** — full parameter list.
-3. **Advanced Settings** — initial conditions, data source, spin-up, and interpolation settings.
-
-## Local testing
-
-For built-in yearly files, test with a local server:
-
-```bash
-python -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000
-```
-
-On GitHub Pages, no local server is needed.
+More model configuration is under **Model Parameters** and **Advanced Settings**.

@@ -158,11 +158,12 @@ small {
 
 .run-layout {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(210px, 1fr) minmax(260px, 1fr) minmax(0, 2fr);
   gap: 8px;
   align-items: start;
 }
 
+.date-range-panel,
 .run-settings-panel,
 .output-panel,
 .card {
@@ -172,6 +173,7 @@ small {
   box-shadow: var(--shadow);
 }
 
+.date-range-panel,
 .run-settings-panel {
   padding: 9px;
   position: sticky;
@@ -259,12 +261,14 @@ input[type="file"] { padding: 8px; }
 .radio-label small { margin-top: 3px; font-weight: 500; line-height: 1.35; }
 .side-input {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 5px;
+  grid-template-columns: 78px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
   font-size: 0.86rem;
   color: var(--muted);
   font-weight: 750;
 }
+.side-input span { text-align: right; white-space: nowrap; }
 .side-input input { padding: 6px 8px; }
 
 .hint { font-size: 0.78rem; line-height: 1.35; margin: 2px 0 8px; }
@@ -278,12 +282,12 @@ input[type="file"] { padding: 8px; }
 
 .quick-param-field {
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 68px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   margin-bottom: 0;
 }
-.quick-param-field label { margin: 0; font-size: 0.92rem; }
+.quick-param-field label { margin: 0; font-size: 0.92rem; text-align: right; }
 
 .parameter-grid {
   display: grid;
@@ -294,6 +298,46 @@ input[type="file"] { padding: 8px; }
 .param-field label { font-size: 0.86rem; }
 .param-field .units,
 .param-step-hint { color: var(--muted); font-size: 0.74rem; font-weight: 600; }
+
+
+.output-checklist {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 10px;
+}
+.output-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: #fff;
+  font-weight: 700;
+}
+.about-card { line-height: 1.55; }
+.equation-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+.equation-list > div {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fbfdff;
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
+}
+.compact-equations > div { background: #fff; }
+.eq-num {
+  display: inline-block;
+  min-width: 36px;
+  color: var(--navy);
+  font-weight: 850;
+}
+.paper-list { line-height: 1.55; padding-left: 24px; }
+.paper-list li { margin-bottom: 9px; }
+.paper-list a { color: var(--navy-2); font-weight: 750; }
 
 .secondary-grid {
   display: grid;
@@ -415,8 +459,48 @@ sub { line-height: 0; }
 @media (max-width: 1200px) {
   .app-shell { grid-template-columns: 230px minmax(0, 1fr); }
   .run-layout { grid-template-columns: 1fr; }
-  .run-settings-panel { position: static; }
-  .secondary-grid { grid-template-columns: 1fr; }
+  .date-range-panel, .run-settings-panel { position: static; }
+  
+.output-checklist {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 10px;
+}
+.output-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  background: #fff;
+  font-weight: 700;
+}
+.about-card { line-height: 1.55; }
+.equation-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+.equation-list > div {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fbfdff;
+  font-family: "Segoe UI", Inter, Arial, sans-serif;
+}
+.compact-equations > div { background: #fff; }
+.eq-num {
+  display: inline-block;
+  min-width: 36px;
+  color: var(--navy);
+  font-weight: 850;
+}
+.paper-list { line-height: 1.55; padding-left: 24px; }
+.paper-list li { margin-bottom: 9px; }
+.paper-list a { color: var(--navy-2); font-weight: 750; }
+
+.secondary-grid { grid-template-columns: 1fr; }
   .parameter-grid { grid-template-columns: repeat(3, minmax(130px, 1fr)); }
 }
 
@@ -435,4 +519,8 @@ sub { line-height: 0; }
   .parameter-grid { grid-template-columns: 1fr; }
   .trigger-row { grid-template-columns: 1fr; }
   .quick-param-field { grid-template-columns: 1fr; }
+  .quick-param-field label { text-align: left; }
+  .side-input { grid-template-columns: 1fr; }
+  .side-input span { text-align: left; }
+  .output-checklist { grid-template-columns: 1fr; }
 }

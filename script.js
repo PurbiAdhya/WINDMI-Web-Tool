@@ -2,10 +2,24 @@ const selectors = {};
 let latestRun = null;
 let syncInProgress = false;
 
+const WINDMI_OUTPUT_META = [
+  { key: "I", label: "I", units: "kA", scale: 1 / 1000 },
+  { key: "V", label: "V", units: "V", scale: 1 },
+  { key: "p", label: "p", units: "", scale: 1 },
+  { key: "K", label: "K∥", units: "", scale: 1 },
+  { key: "I1", label: "I₁", units: "kA", scale: 1 / 1000 },
+  { key: "V1", label: "V₁", units: "V", scale: 1 },
+  { key: "I2", label: "I₂", units: "kA", scale: 1 / 1000 },
+  { key: "Wrc", label: "Wrc", units: "J", scale: 1 }
+];
+
+const DEFAULT_OUTPUT_KEYS = new Set(["I", "I1"]);
+
 window.addEventListener("DOMContentLoaded", () => {
   cacheSelectors();
   buildParameterInputs();
   buildInitialInputs();
+  buildOutputChecklist();
   setDefaultTimes();
   wireEvents();
   updateSourceVisibility();
@@ -16,7 +30,7 @@ function cacheSelectors() {
     "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours",
     "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
     "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "exportPlotBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
-    "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1"
+    "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1", "outputChecklist"
   ];
 
   ids.forEach(id => selectors[id] = document.getElementById(id));
@@ -96,6 +110,31 @@ function buildInitialInputs() {
   });
 }
 
+function buildOutputChecklist() {
+  if (!selectors.outputChecklist) return;
+  selectors.outputChecklist.innerHTML = "";
+
+  WINDMI_OUTPUT_META.forEach(meta => {
+    const label = document.createElement("label");
+    const checked = DEFAULT_OUTPUT_KEYS.has(meta.key) ? "checked" : "";
+    label.innerHTML = `
+      <input type="checkbox" data-output-key="${meta.key}" ${checked} />
+      <span>${meta.label}${meta.units ? ` <small>(${meta.units})</small>` : ""}</span>
+    `;
+    selectors.outputChecklist.appendChild(label);
+  });
+}
+
+function collectOutputSelection() {
+  const selected = Array.from(document.querySelectorAll("[data-output-key]:checked"))
+    .map(input => input.dataset.outputKey);
+  return selected.length ? selected : ["I", "I1"];
+}
+
+function getOutputMeta(key) {
+  return WINDMI_OUTPUT_META.find(item => item.key === key);
+}
+
 function setDefaultTimes() {
   const start = new Date(Date.UTC(2000, 0, 1, 0, 0, 0));
   const end = new Date(Date.UTC(2000, 0, 2, 0, 0, 0));
@@ -157,7 +196,7 @@ function resetDefaults() {
   buildInitialInputs();
   const offRadio = document.querySelector("input[name='icModeRadio'][value='off']");
   if (offRadio) offRadio.checked = true;
-  selectors.icConstant.value = "2000000";
+  selectors.icConstant.value = "200";
   selectors.icPercentile.value = "70";
   updateTriggerVisibility();
   selectors.spinupHours.value = "2";
@@ -288,10 +327,11 @@ async function runModel() {
     // Give the UI a moment to paint before a large solve.
     await new Promise(resolve => setTimeout(resolve, 40));
 
+    const triggerMode = selectedTriggerMode();
     const solution = solveWindmi(loadInfo.rows, {
       params,
       initialState,
-      icMode: selectedTriggerMode(),
+      icMode: triggerMode,
       // UI input is in kA; WINDMI internals use A.
       icConstant: Number(selectors.icConstant.value) * 1000,
       icPercentile: Number(selectors.icPercentile.value)
@@ -305,6 +345,8 @@ async function runModel() {
       spinupHours,
       loadInfo,
       solution,
+      triggerMode,
+      outputKeys: collectOutputSelection(),
       plotted
     };
 
@@ -665,7 +707,9 @@ function plotRun(run) {
     yaxis: { ...baseLayout.yaxis, title: { text: "vBₛ (kV)", font: { size: 12 } } }
   }, config);
 
-  Plotly.react(selectors.plotITheta, [
+  const outputKeys = run.outputKeys && run.outputKeys.length ? run.outputKeys : collectOutputSelection();
+  const showI = outputKeys.includes("I");
+  const iThetaTraces = [
     {
       x: times,
       y: rows.map(row => row.theta),
@@ -677,8 +721,11 @@ function plotRun(run) {
       fillcolor: colors.tealFill,
       line: { color: "rgba(15, 159, 179, 0.48)", width: 0.9 },
       hovertemplate: "%{y:.3f}<extra>θ</extra>"
-    },
-    {
+    }
+  ];
+
+  if (showI) {
+    iThetaTraces.push({
       x: times,
       y: rows.map(row => row.I / 1000),
       type: "scatter",
@@ -686,8 +733,11 @@ function plotRun(run) {
       name: "I",
       line: { color: colors.navy, width: 1.8 },
       hovertemplate: "%{y:.3f} kA<extra>I</extra>"
-    },
-    {
+    });
+  }
+
+  if (run.triggerMode !== "off" && showI) {
+    iThetaTraces.push({
       x: times,
       y: rows.map(() => icKA),
       type: "scatter",
@@ -695,8 +745,10 @@ function plotRun(run) {
       name: "I<sub>c</sub>",
       line: { color: colors.slate, width: 1.15, dash: "dash" },
       hovertemplate: `%{y:.3f} kA<extra>I<sub>c</sub></extra>`
-    }
-  ], {
+    });
+  }
+
+  Plotly.react(selectors.plotITheta, iThetaTraces, {
     ...baseLayout,
     title: { text: "<b>(b) WINDMI magnetotail current I and trigger θ</b>", ...titleStyle },
     yaxis: { ...baseLayout.yaxis, title: { text: "I (kA)", font: { size: 12 } } },
@@ -715,20 +767,39 @@ function plotRun(run) {
     }
   }, config);
 
-  Plotly.react(selectors.plotI1, [
-    {
+  const selectedBottomKeys = outputKeys.filter(key => key !== "I");
+  if (!selectedBottomKeys.length) selectedBottomKeys.push("I1");
+
+  const palette = [colors.blue, "#6d5dfc", "#0f766e", "#a16207", "#be123c", "#475569", "#7c3aed"];
+  const bottomTraces = selectedBottomKeys.map((key, index) => {
+    const meta = getOutputMeta(key);
+    const scale = meta?.scale || 1;
+    const label = meta?.label || key;
+    const units = meta?.units ? ` ${meta.units}` : "";
+    return {
       x: times,
-      y: rows.map(row => row.I1 / 1000),
+      y: rows.map(row => row[key] * scale),
       type: "scatter",
       mode: "lines",
-      name: "I₁",
-      line: { color: colors.blue, width: 1.8 },
-      hovertemplate: "%{y:.3f} kA<extra>I₁</extra>"
-    }
-  ], {
+      name: label,
+      line: { color: palette[index % palette.length], width: 1.75 },
+      hovertemplate: `%{y:.3g}${units}<extra>${label}</extra>`
+    };
+  });
+
+  const bottomTitle = selectedBottomKeys.length === 1 && selectedBottomKeys[0] === "I1"
+    ? "<b>(c) WINDMI R1 current I₁</b>"
+    : "<b>(c) Selected WINDMI state variables</b>";
+  const bottomAxisTitle = selectedBottomKeys.length === 1
+    ? `${getOutputMeta(selectedBottomKeys[0])?.label || selectedBottomKeys[0]}${getOutputMeta(selectedBottomKeys[0])?.units ? ` (${getOutputMeta(selectedBottomKeys[0]).units})` : ""}`
+    : "Selected outputs";
+
+  Plotly.react(selectors.plotI1, bottomTraces, {
     ...baseLayout,
-    title: { text: "<b>(c) WINDMI R1 current I₁</b>", ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: "I₁ (kA)", font: { size: 12 } } }
+    title: { text: bottomTitle, ...titleStyle },
+    yaxis: { ...baseLayout.yaxis, title: { text: bottomAxisTitle, font: { size: 12 } } },
+    showlegend: selectedBottomKeys.length > 1,
+    legend: { orientation: "h", x: 0, y: 1.18, font: { size: 11 } }
   }, config);
 
   selectors.runSummary.innerHTML = "";
