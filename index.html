@@ -1,126 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>WINDMI Model Tool</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>windmi web tool</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
-  <header class="app-header">
+  <header class="hero full-width">
     <div>
-      <p class="eyebrow">OMNI → WINDMI</p>
-      <h1>WINDMI Model Tool</h1>
-      <p class="subtitle">Upload OMNI 1-minute data, select a date range, solve the 8-state WINDMI system, and plot the model outputs.</p>
+      <p class="eyebrow">Browser-based WINDMI solver</p>
+      <h1>windmi web tool</h1>
+      <p class="lede">
+        Load OMNI 1-minute data, choose a UTC interval, solve the WINDMI model in the browser,
+        and view the results in linked Plotly panels.
+      </p>
     </div>
   </header>
 
-  <main class="shell">
-    <section class="card controls-card">
-      <div class="section-title">
-        <h2>Inputs</h2>
-        <p>Use the OMNI CSV exported from CDAWeb. The app expects time, Bz, and Vx columns.</p>
+  <main class="shell full-width">
+    <section id="setupPage" class="page active">
+      <div class="setup-grid">
+        <section class="card setup-card data-card">
+          <div class="card-title-row compact-title">
+            <div>
+              <h2>OMNI data and date range</h2>
+              <p>Use yearly OMNI files in <code>data/</code>, or upload one CSV manually.</p>
+            </div>
+            <button id="resetDefaultsBtn" class="secondary small" type="button">Reset setup</button>
+          </div>
+
+          <fieldset class="field radio-card">
+            <legend>Data source</legend>
+            <label><input type="radio" name="dataSource" value="repo" checked /> Built-in yearly files from repository</label>
+            <label><input type="radio" name="dataSource" value="upload" /> Upload one OMNI CSV file</label>
+            <p class="hint">Built-in mode loads only the year files needed for the selected interval and spin-up.</p>
+          </fieldset>
+
+          <div class="field" id="uploadFieldWrap">
+            <label for="fileInput">OMNI CSV file input</label>
+            <input id="fileInput" type="file" accept=".csv,.txt" />
+            <p class="hint">Used only when “Upload one OMNI CSV file” is selected.</p>
+          </div>
+
+          <div class="grid two date-grid">
+            <div class="field">
+              <label for="startTime">Start time (UTC)</label>
+              <input id="startTime" type="datetime-local" />
+            </div>
+            <div class="field">
+              <label for="endTime">End time (UTC)</label>
+              <input id="endTime" type="datetime-local" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="spinupHours">Spin-up before start (hours)</label>
+            <input id="spinupHours" type="number" min="0" max="24" step="0.5" value="2" />
+            <p class="hint">Spin-up can require the previous year file when the selected interval starts near Jan 1.</p>
+          </div>
+        </section>
+
+        <section class="card setup-card trigger-card">
+          <h2>Trigger conditions</h2>
+          <p class="card-note">Choose how the threshold current <span class="math-label">I<sub>c</sub></span> is set.</p>
+
+          <div class="grid three trigger-grid">
+            <div class="field">
+              <label for="icMode">Trigger mode</label>
+              <select id="icMode">
+                <option value="constant">Constant I_c</option>
+                <option value="percentile" selected>Triggered percentile I_c</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="icConstant">Constant / prepass <span>I<sub>c</sub></span> (A)</label>
+              <input id="icConstant" type="number" step="1000" value="20000000" />
+            </div>
+            <div class="field">
+              <label for="icPercentile">Trigger percentile</label>
+              <input id="icPercentile" type="number" min="0" max="100" step="1" value="70" />
+            </div>
+          </div>
+        </section>
       </div>
 
-      <div class="grid two">
-        <label class="field file-field">
-          <span>OMNI CSV file</span>
-          <input id="fileInput" type="file" accept=".csv,.txt,text/csv" />
-        </label>
+      <section class="card model-card">
+        <details class="details-block" open>
+          <summary>Model parameters</summary>
+          <div class="details-heading-row">
+            <p class="hint">
+              Use the spinner arrows to change each parameter by 10% of its nominal/default value.
+            </p>
+            <button id="resetParamsBtn" class="secondary small" type="button">Reset to nominal parameters</button>
+          </div>
+          <div id="parameterGrid" class="grid four parameter-grid"></div>
+        </details>
 
-        <label class="field">
-          <span>Maximum RK4 step, seconds</span>
-          <input id="maxStep" type="number" min="1" step="1" value="60" />
-        </label>
-      </div>
+        <details class="details-block">
+          <summary>Initial conditions</summary>
+          <p class="hint">These are grouped together because the original Simulink initial conditions were not included with the MATLAB script.</p>
+          <div id="initialGrid" class="grid four parameter-grid"></div>
+        </details>
 
-      <div class="grid two date-grid">
-        <label class="field">
-          <span>Start date/time UTC</span>
-          <input id="startDate" type="datetime-local" value="2000-01-01T00:00" />
-        </label>
-        <label class="field">
-          <span>End date/time UTC</span>
-          <input id="endDate" type="datetime-local" value="2000-01-02T00:00" />
-        </label>
-      </div>
+        <details class="details-block">
+          <summary>Data handling</summary>
+          <div class="grid three">
+            <label class="checkbox-line">
+              <input id="interpolateMissing" type="checkbox" checked />
+              Interpolate short gaps
+            </label>
+            <div class="field">
+              <label for="maxGapMinutes">Maximum gap to interpolate (minutes)</label>
+              <input id="maxGapMinutes" type="number" min="1" max="180" step="1" value="30" />
+            </div>
+            <div class="field">
+              <label for="dataPathPattern">Built-in data path pattern</label>
+              <input id="dataPathPattern" type="text" value="data/omni_{year}.csv" />
+            </div>
+          </div>
+        </details>
 
-      <div class="grid two">
-        <fieldset class="field radio-group">
-          <legend>Trigger mode</legend>
-          <label><input type="radio" name="triggerMode" value="constant" checked /> Constant I<sub>c</sub></label>
-          <label><input type="radio" name="triggerMode" value="percentile" /> Triggered I<sub>c</sub> from percentile</label>
-        </fieldset>
-
-        <div class="field compact-grid">
-          <label>
-            <span>Constant I<sub>c</sub>, A</span>
-            <input id="constantIc" type="number" step="any" value="20000000" />
-          </label>
-          <label>
-            <span>Trigger percentile</span>
-            <input id="triggerPercentile" type="number" min="0" max="100" step="1" value="70" />
-          </label>
+        <div class="actions run-actions">
+          <button id="runBtn" type="button">Run WINDMI</button>
         </div>
-      </div>
 
-      <div class="plot-note">
-        <strong>Plot layout:</strong> the result is displayed as three separate linked panels: vB<sub>s</sub>, I with Θ shaded on the right axis, and I<sub>1</sub>. I and I<sub>1</sub> are shown in kA, not normalized.
-      </div>
-
-      <div class="inline-options">
-        <label><input id="interpolateMissing" type="checkbox" checked /> Linearly interpolate OMNI fill values</label>
-      </div>
-
-      <details class="advanced">
-        <summary>Advanced model parameters</summary>
-        <div id="parameterGrid" class="parameter-grid"></div>
-      </details>
-
-      <details class="advanced">
-        <summary>Initial conditions</summary>
-        <div id="initialGrid" class="parameter-grid"></div>
-      </details>
-
-      <div class="actions">
-        <button id="runButton" class="primary">Solve WINDMI</button>
-        <button id="downloadButton" disabled>Download output CSV</button>
-        <button id="clearButton" class="ghost">Clear</button>
-      </div>
+        <div id="statusBox" class="status neutral">Ready.</div>
+      </section>
     </section>
 
-    <section class="card status-card">
-      <div class="section-title">
-        <h2>Status</h2>
-      </div>
-      <div id="statusBox" class="status-box">Choose an OMNI CSV file and click <strong>Solve WINDMI</strong>.</div>
-      <div id="summaryBox" class="summary-grid" hidden></div>
-    </section>
-
-    <section class="card plot-card">
-      <div class="section-title plot-title-row">
-        <div>
-          <h2>Interactive plot</h2>
-          <p>Separate linked panels: vB<sub>s</sub>, I with Θ shaded on its own right axis, and I<sub>1</sub>.</p>
+    <section id="plotPage" class="page">
+      <section class="card plot-card full-plot-card">
+        <div class="plot-header">
+          <div>
+            <p class="eyebrow mini">WINDMI output</p>
+            <h2>Model result plots</h2>
+            <p>
+              Three linked plots: vB<sub>s</sub>, I with shaded θ on the right axis, and I<sub>1</sub>.
+              I and I<sub>1</sub> are plotted in kA and are not normalized.
+            </p>
+          </div>
+          <div class="plot-actions">
+            <button id="backToSetupBtn" class="secondary" type="button">Set conditions again and run</button>
+            <button id="exportBtn" class="secondary" type="button" disabled>Export plotted output CSV</button>
+          </div>
         </div>
-        <div id="plotBadge" class="badge" hidden></div>
-      </div>
-      <div id="plot" class="plot-placeholder">The plot will appear here.</div>
-    </section>
 
-    <section class="card table-card">
-      <div class="section-title">
-        <h2>Trigger intervals</h2>
-        <p>Intervals where Θ ≥ 0.1 in the displayed run.</p>
-      </div>
-      <div id="segmentsBox" class="segments-box">No result yet.</div>
+        <div id="runSummary" class="run-summary wide">No run yet.</div>
+
+        <div id="plotVbs" class="plot-panel"></div>
+        <div id="plotITheta" class="plot-panel"></div>
+        <div id="plotI1" class="plot-panel"></div>
+      </section>
     </section>
   </main>
 
-  <footer class="footer">
-    <p>Runs entirely in the browser. No data is uploaded to a server.</p>
+  <footer class="footer full-width">
+    <p>
+      Static GitHub Pages app. Computation runs locally in the browser using JavaScript and Plotly.
+    </p>
   </footer>
 
   <script src="windmi.js"></script>
