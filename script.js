@@ -30,7 +30,7 @@ function cacheSelectors() {
     "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours",
     "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
     "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "exportPlotBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
-    "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotVbs", "plotITheta", "plotI1", "outputChecklist"
+    "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotStack", "outputChecklist", "outputSelectionMessage"
   ];
 
   ids.forEach(id => selectors[id] = document.getElementById(id));
@@ -123,12 +123,58 @@ function buildOutputChecklist() {
     `;
     selectors.outputChecklist.appendChild(label);
   });
+
+  wireOutputSelectionRules();
+}
+
+function wireOutputSelectionRules() {
+  document.querySelectorAll("[data-output-key]").forEach(input => {
+    input.addEventListener("change", () => {
+      const checked = document.querySelectorAll("[data-output-key]:checked");
+
+      if (checked.length < 1) {
+        input.checked = true;
+        showOutputSelectionMessage("At least one state variable must be selected.", "warning");
+      } else if (checked.length > 4) {
+        input.checked = false;
+        showOutputSelectionMessage("Select at most four state variables.", "warning");
+      } else {
+        showOutputSelectionMessage("Select at least one and at most four state variables.", "neutral");
+      }
+
+      updateOutputChecklistAvailability();
+    });
+  });
+
+  updateOutputChecklistAvailability();
+}
+
+function updateOutputChecklistAvailability() {
+  const checked = document.querySelectorAll("[data-output-key]:checked");
+  const atMax = checked.length >= 4;
+
+  document.querySelectorAll("[data-output-key]").forEach(input => {
+    input.disabled = atMax && !input.checked;
+  });
+}
+
+function showOutputSelectionMessage(message, mode = "neutral") {
+  if (!selectors.outputSelectionMessage) return;
+  selectors.outputSelectionMessage.textContent = message;
+  selectors.outputSelectionMessage.classList.toggle("warning", mode === "warning");
 }
 
 function collectOutputSelection() {
-  const selected = Array.from(document.querySelectorAll("[data-output-key]:checked"))
+  return Array.from(document.querySelectorAll("[data-output-key]:checked"))
     .map(input => input.dataset.outputKey);
-  return selected.length ? selected : ["I", "I1"];
+}
+
+function getValidatedOutputSelection() {
+  const selected = collectOutputSelection();
+  if (selected.length < 1 || selected.length > 4) {
+    throw new Error("Please select at least one and at most four WINDMI state variables in Model Parameters → Output to show.");
+  }
+  return selected;
 }
 
 function getOutputMeta(key) {
@@ -194,6 +240,7 @@ function updateTriggerVisibility() {
 function resetDefaults() {
   buildParameterInputs();
   buildInitialInputs();
+  buildOutputChecklist();
   const offRadio = document.querySelector("input[name='icModeRadio'][value='off']");
   if (offRadio) offRadio.checked = true;
   selectors.icConstant.value = "200";
@@ -222,8 +269,7 @@ function showView(viewId) {
   });
   window.scrollTo({ top: 0, behavior: "smooth" });
   setTimeout(() => {
-    ["plotVbs", "plotITheta", "plotI1"].forEach(id => {
-      const el = document.getElementById(id);
+    getActivePlotDivs().forEach(el => {
       if (el && window.Plotly) Plotly.Plots.resize(el);
     });
     if (viewId === "aboutWindmiView" && window.MathJax?.typesetPromise) {
@@ -304,6 +350,7 @@ async function runModel() {
     const spinupHours = Math.max(0, Number(selectors.spinupHours.value) || 0);
     const params = collectParams();
     const initialState = collectInitialState();
+    const outputKeys = getValidatedOutputSelection();
 
     if (!start || !end || end <= start) {
       throw new Error("Please enter a valid UTC start and end time. End time must be after start time.");
@@ -349,7 +396,7 @@ async function runModel() {
       loadInfo,
       solution,
       triggerMode,
-      outputKeys: collectOutputSelection(),
+      outputKeys,
       plotted
     };
 
@@ -632,60 +679,33 @@ function plotRun(run) {
   const rows = run.plotted;
   if (!rows.length) throw new Error("No model output rows fall inside the selected plotting interval.");
 
-  const times = rows.map(row => row.time);
+  const plotTimes = rows.map(row => utcDateForPlot(row.time));
+  const utcLabels = rows.map(row => formatUtc(row.time));
   const icKA = run.solution.meta.ic / 1000;
   const vbsSmoothedKV = runningAverage(rows.map(row => row.vbs / 1000), 5);
+  const outputKeys = run.outputKeys && run.outputKeys.length ? run.outputKeys : getValidatedOutputSelection();
+
+  if (outputKeys.length < 1 || outputKeys.length > 4) {
+    throw new Error("Please select at least one and at most four state variables.");
+  }
 
   const colors = {
     navy: "#073763",
-    blue: "#0b4f8a",
+    blue: "#1d5fa7",
     teal: "#0f9fb3",
-    tealFill: "rgba(15, 159, 179, 0.22)",
-    orange: "#e67e22",
+    tealFill: "rgba(15, 159, 179, 0.20)",
+    orange: "#d96c13",
+    purple: "#6d5dfc",
+    green: "#0f766e",
+    amber: "#a16207",
+    rose: "#be123c",
     slate: "#56657a",
-    grid: "#e9eef5",
+    grid: "#e6edf5",
     ink: "#111827"
   };
 
-  const baseLayout = {
-    autosize: true,
-    margin: { l: 64, r: 58, t: 38, b: 36 },
-    paper_bgcolor: "white",
-    plot_bgcolor: "white",
-    hovermode: "x unified",
-    font: { family: "Inter, Arial, sans-serif", size: 11.5, color: colors.ink },
-    xaxis: {
-      title: { text: "UT", font: { size: 12, color: colors.ink } },
-      showgrid: true,
-      gridcolor: colors.grid,
-      zeroline: false,
-      showline: false,
-      mirror: false,
-      ticks: "outside",
-      tickfont: { size: 10.5, color: colors.ink },
-      automargin: true
-    },
-    yaxis: {
-      showgrid: true,
-      gridcolor: colors.grid,
-      zeroline: false,
-      showline: false,
-      mirror: false,
-      ticks: "outside",
-      tickfont: { size: 10.5, color: colors.ink },
-      automargin: true,
-      titlefont: { size: 12, color: colors.ink }
-    },
-    showlegend: false
-  };
-
-  const titleStyle = {
-    x: 0.5,
-    xanchor: "center",
-    y: 0.98,
-    yanchor: "top",
-    font: { size: 15.5, color: colors.navy }
-  };
+  const stack = selectors.plotStack || document.querySelector(".plot-stack");
+  stack.innerHTML = "";
 
   const config = {
     responsive: true,
@@ -694,121 +714,184 @@ function plotRun(run) {
     modeBarButtonsToRemove: ["lasso2d", "select2d"]
   };
 
-  Plotly.react(selectors.plotVbs, [
+  const baseLayout = makeBasePlotLayout(colors);
+  const titleStyle = {
+    x: 0.5,
+    xanchor: "center",
+    y: 0.985,
+    yanchor: "top",
+    font: { size: 15.5, color: colors.navy }
+  };
+
+  const plotDivs = [];
+  let panelIndex = 0;
+
+  function makePanel(extraClass = "") {
+    const div = document.createElement("div");
+    div.className = `plot-panel ${extraClass}`.trim();
+    stack.appendChild(div);
+    plotDivs.push(div);
+    return div;
+  }
+
+  const vbsPanel = makePanel("input-plot-panel");
+  panelIndex += 1;
+  Plotly.react(vbsPanel, [
     {
-      x: times,
+      x: plotTimes,
       y: vbsSmoothedKV,
+      customdata: utcLabels,
       type: "scatter",
       mode: "lines",
       name: "5-min running average vBₛ",
-      line: { color: colors.orange, width: 1.9 },
-      hovertemplate: "%{y:.3f} kV<extra>5-min vBₛ</extra>"
+      line: { color: colors.orange, width: 2.2 },
+      hovertemplate: "%{customdata}<br>%{y:.3f} kV<extra>5-min vBₛ</extra>"
     }
   ], {
     ...baseLayout,
-    title: { text: "<b>(a) Solar wind input vBₛ</b>", ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: "vBₛ (kV)", font: { size: 12 } } }
+    title: { text: `<b>(${letterForIndex(panelIndex)}) Solar wind input vBₛ</b>`, ...titleStyle },
+    yaxis: { ...baseLayout.yaxis, title: { text: "vBₛ (kV)", font: { size: 12.5 } } }
   }, config);
 
-  const outputKeys = run.outputKeys && run.outputKeys.length ? run.outputKeys : collectOutputSelection();
-  const showI = outputKeys.includes("I");
-  const iThetaTraces = [
-    {
-      x: times,
-      y: rows.map(row => row.theta),
-      type: "scatter",
-      mode: "lines",
-      name: "θ",
-      yaxis: "y2",
-      fill: "tozeroy",
-      fillcolor: colors.tealFill,
-      line: { color: "rgba(15, 159, 179, 0.48)", width: 0.9 },
-      hovertemplate: "%{y:.3f}<extra>θ</extra>"
-    }
-  ];
+  const palette = [colors.navy, colors.blue, colors.purple, colors.green, colors.amber, colors.rose, colors.slate];
 
-  if (showI) {
-    iThetaTraces.push({
-      x: times,
-      y: rows.map(row => row.I / 1000),
-      type: "scatter",
-      mode: "lines",
-      name: "I",
-      line: { color: colors.navy, width: 1.8 },
-      hovertemplate: "%{y:.3f} kA<extra>I</extra>"
-    });
-  }
-
-  if (run.triggerMode !== "off" && showI) {
-    iThetaTraces.push({
-      x: times,
-      y: rows.map(() => icKA),
-      type: "scatter",
-      mode: "lines",
-      name: "I<sub>c</sub>",
-      line: { color: colors.slate, width: 1.15, dash: "dash" },
-      hovertemplate: `%{y:.3f} kA<extra>I<sub>c</sub></extra>`
-    });
-  }
-
-  Plotly.react(selectors.plotITheta, iThetaTraces, {
-    ...baseLayout,
-    title: { text: "<b>(b) WINDMI magnetotail current I and trigger θ</b>", ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: "I (kA)", font: { size: 12 } } },
-    yaxis2: {
-      title: { text: "θ", font: { size: 12, color: colors.teal } },
-      overlaying: "y",
-      side: "right",
-      range: [0, 1],
-      showgrid: false,
-      zeroline: false,
-      showline: false,
-      mirror: false,
-      ticks: "outside",
-      tickfont: { size: 10.5, color: colors.teal },
-      automargin: true
-    }
-  }, config);
-
-  const selectedBottomKeys = outputKeys.filter(key => key !== "I");
-  if (!selectedBottomKeys.length) selectedBottomKeys.push("I1");
-
-  const palette = [colors.blue, "#6d5dfc", "#0f766e", "#a16207", "#be123c", "#475569", "#7c3aed"];
-  const bottomTraces = selectedBottomKeys.map((key, index) => {
+  outputKeys.forEach((key, index) => {
     const meta = getOutputMeta(key);
-    const scale = meta?.scale || 1;
-    const label = meta?.label || key;
-    const units = meta?.units ? ` ${meta.units}` : "";
-    return {
-      x: times,
-      y: rows.map(row => row[key] * scale),
+    if (!meta) return;
+
+    const div = makePanel("state-plot-panel");
+    panelIndex += 1;
+    const scale = meta.scale || 1;
+    const label = meta.label || key;
+    const units = meta.units || "";
+    const color = key === "I" ? colors.navy : palette[index % palette.length];
+    const yValues = rows.map(row => row[key] * scale);
+    const traces = [];
+
+    if (key === "I") {
+      traces.push({
+        x: plotTimes,
+        y: rows.map(row => row.theta),
+        customdata: utcLabels,
+        type: "scatter",
+        mode: "lines",
+        name: "θ",
+        yaxis: "y2",
+        fill: "tozeroy",
+        fillcolor: colors.tealFill,
+        line: { color: "rgba(15, 159, 179, 0.55)", width: 1.0 },
+        hovertemplate: "%{customdata}<br>θ = %{y:.3f}<extra>θ</extra>"
+      });
+    }
+
+    traces.push({
+      x: plotTimes,
+      y: yValues,
+      customdata: utcLabels,
       type: "scatter",
       mode: "lines",
       name: label,
-      line: { color: palette[index % palette.length], width: 1.75 },
-      hovertemplate: `%{y:.3g}${units}<extra>${label}</extra>`
+      line: { color, width: 2.0 },
+      hovertemplate: `%{customdata}<br>%{y:.4g}${units ? ` ${units}` : ""}<extra>${label}</extra>`
+    });
+
+    if (key === "I" && run.triggerMode !== "off") {
+      traces.push({
+        x: plotTimes,
+        y: rows.map(() => icKA),
+        customdata: utcLabels,
+        type: "scatter",
+        mode: "lines",
+        name: "I<sub>c</sub>",
+        line: { color: colors.slate, width: 1.25, dash: "dash" },
+        hovertemplate: `%{customdata}<br>%{y:.3f} kA<extra>I<sub>c</sub></extra>`
+      });
+    }
+
+    const yAxisTitle = `${label}${units ? ` (${units})` : ""}`;
+    const layout = {
+      ...baseLayout,
+      title: { text: `<b>(${letterForIndex(panelIndex)}) ${label}</b>`, ...titleStyle },
+      yaxis: { ...baseLayout.yaxis, title: { text: yAxisTitle, font: { size: 12.5 } } },
+      showlegend: key === "I"
     };
+
+    if (key === "I") {
+      layout.title = { text: `<b>(${letterForIndex(panelIndex)}) Magnetotail current I and trigger θ</b>`, ...titleStyle };
+      layout.yaxis2 = {
+        title: { text: "θ", font: { size: 12.5, color: colors.teal } },
+        overlaying: "y",
+        side: "right",
+        range: [0, 1],
+        showgrid: false,
+        zeroline: false,
+        showline: false,
+        mirror: false,
+        ticks: "outside",
+        tickfont: { size: 11.5, color: colors.teal },
+        automargin: true
+      };
+      layout.legend = { orientation: "h", x: 0, y: 1.18, font: { size: 11.5 } };
+    }
+
+    Plotly.react(div, traces, layout, config);
   });
-
-  const bottomTitle = selectedBottomKeys.length === 1 && selectedBottomKeys[0] === "I1"
-    ? "<b>(c) WINDMI R1 current I₁</b>"
-    : "<b>(c) Selected WINDMI state variables</b>";
-  const bottomAxisTitle = selectedBottomKeys.length === 1
-    ? `${getOutputMeta(selectedBottomKeys[0])?.label || selectedBottomKeys[0]}${getOutputMeta(selectedBottomKeys[0])?.units ? ` (${getOutputMeta(selectedBottomKeys[0]).units})` : ""}`
-    : "Selected outputs";
-
-  Plotly.react(selectors.plotI1, bottomTraces, {
-    ...baseLayout,
-    title: { text: bottomTitle, ...titleStyle },
-    yaxis: { ...baseLayout.yaxis, title: { text: bottomAxisTitle, font: { size: 12 } } },
-    showlegend: selectedBottomKeys.length > 1,
-    legend: { orientation: "h", x: 0, y: 1.18, font: { size: 11 } }
-  }, config);
 
   selectors.runSummary.innerHTML = "";
   selectors.runSummary.classList.add("hidden");
 
-  attachPlotSync();
+  attachPlotSync(plotDivs);
+}
+
+function makeBasePlotLayout(colors) {
+  return {
+    autosize: true,
+    margin: { l: 64, r: 58, t: 38, b: 36 },
+    paper_bgcolor: "white",
+    plot_bgcolor: "white",
+    hovermode: "x unified",
+    font: { family: "Inter, Arial, sans-serif", size: 12.5, color: colors.ink },
+    xaxis: {
+      title: { text: "UT", font: { size: 12.5, color: colors.ink } },
+      showgrid: true,
+      gridcolor: colors.grid,
+      zeroline: false,
+      showline: false,
+      mirror: false,
+      ticks: "outside",
+      tickfont: { size: 11.5, color: colors.ink },
+      automargin: true,
+      tickformat: "%H:%M<br>%b %-d, %Y"
+    },
+    yaxis: {
+      showgrid: true,
+      gridcolor: colors.grid,
+      zeroline: false,
+      showline: false,
+      mirror: false,
+      ticks: "outside",
+      tickfont: { size: 11.5, color: colors.ink },
+      automargin: true,
+      titlefont: { size: 12.5, color: colors.ink }
+    },
+    showlegend: false
+  };
+}
+
+function letterForIndex(index) {
+  return String.fromCharCode(96 + index);
+}
+
+function utcDateForPlot(date) {
+  return new Date(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    date.getUTCSeconds(),
+    date.getUTCMilliseconds()
+  );
 }
 
 function runningAverage(values, windowSize = 5) {
@@ -829,8 +912,11 @@ function runningAverage(values, windowSize = 5) {
   });
 }
 
-function attachPlotSync() {
-  const divs = [selectors.plotVbs, selectors.plotITheta, selectors.plotI1];
+function getActivePlotDivs() {
+  return Array.from((selectors.plotStack || document).querySelectorAll(".plot-panel"));
+}
+
+function attachPlotSync(divs = getActivePlotDivs()) {
   divs.forEach(source => {
     source.removeAllListeners?.("plotly_relayout");
     source.on?.("plotly_relayout", eventData => {
@@ -912,7 +998,7 @@ async function exportPlotImage() {
     selectors.exportPlotBtn.disabled = true;
     selectors.exportPlotBtn.textContent = "Preparing PNG...";
 
-    const divs = [selectors.plotVbs, selectors.plotITheta, selectors.plotI1];
+    const divs = getActivePlotDivs();
     const images = [];
 
     for (const div of divs) {

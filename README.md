@@ -48,3 +48,12 @@ The app loads only the year files required by the selected UTC interval and spin
 5. Click **Run WINDMI**.
 
 More model configuration is under **Model Parameters** and **Advanced Settings**.
+
+
+## Latest interface update
+
+- The output plot keeps the smoothed vB_s input as the first panel.
+- Each selected WINDMI state variable now gets its own subplot.
+- The output checklist enforces selecting at least one and at most four state variables.
+- The theta trigger function is shown only on the I subplot when I is selected.
+- Plot x-axes display the selected time range in UTC, avoiding local-time offsets.

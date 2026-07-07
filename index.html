@@ -125,11 +125,7 @@
 
             <div id="runSummary" class="run-summary hidden" aria-live="polite"></div>
 
-            <div class="plot-stack">
-              <div id="plotVbs" class="plot-panel"></div>
-              <div id="plotITheta" class="plot-panel"></div>
-              <div id="plotI1" class="plot-panel"></div>
-            </div>
+            <div id="plotStack" class="plot-stack"></div>
           </section>
         </div>
       </section>
@@ -156,10 +152,11 @@
           <div class="card-title-row">
             <div>
               <h2 id="outputHeading">Output to show</h2>
-              <p>Select the WINDMI state variables to include in the output plot. The standard view shows I with θ and I₁ below.</p>
+              <p>Select 1–4 WINDMI state variables to include in the output plot. Each selected state variable gets its own subplot. θ appears only on the I subplot.</p>
             </div>
           </div>
           <div id="outputChecklist" class="output-checklist"></div>
+          <p id="outputSelectionMessage" class="hint output-selection-message">Select at least one and at most four state variables.</p>
         </section>
       </section>
 

@@ -25,7 +25,7 @@ body {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 170px minmax(0, 1fr);
+  grid-template-columns: 230px minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -557,4 +557,35 @@ sub { line-height: 0; }
 }
 @media (max-width: 780px) {
   .three-panel-layout { grid-template-columns: 1fr; }
+}
+
+/* Dynamic output subplot layout */
+.output-selection-message {
+  margin: 10px 0 0;
+}
+.output-selection-message.warning {
+  color: #995b00;
+  font-weight: 750;
+}
+.output-checklist input:disabled + span {
+  opacity: 0.55;
+}
+.plot-stack {
+  gap: 8px;
+}
+.plot-panel {
+  height: 150px;
+}
+.plot-panel.input-plot-panel {
+  height: 145px;
+}
+.plot-panel.state-plot-panel {
+  height: 150px;
+}
+@media (min-width: 1600px) {
+  .plot-panel,
+  .plot-panel.input-plot-panel,
+  .plot-panel.state-plot-panel {
+    height: 162px;
+  }
 }
