@@ -1,3 +1,6 @@
+const WINDMI_SCRIPT_VERSION = "pad-fix-20260708";
+console.info("WINDMI script", WINDMI_SCRIPT_VERSION);
+
 const selectors = {};
 let latestRun = null;
 let syncInProgress = false;
