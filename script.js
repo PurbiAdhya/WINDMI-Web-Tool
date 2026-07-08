@@ -1068,6 +1068,7 @@ function compactTime(date) {
 }
 
 function formatUtc(date) {
+  const pad = n => String(n).padStart(2, "0");
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} UTC`;
 }
 
