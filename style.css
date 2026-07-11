@@ -602,3 +602,128 @@ sub { line-height: 0; }
   overflow: visible;
   background: #fff;
 }
+
+/* 2026-07-11: stacked controls + WINDMI input panel */
+.run-layout.three-panel-layout {
+  grid-template-columns: minmax(210px, 1fr) minmax(250px, 1fr) minmax(0, 2fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.run-control-column {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  position: sticky;
+  top: 14px;
+}
+
+.date-range-panel,
+.trigger-settings-panel,
+.input-panel,
+.output-panel {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.date-range-panel,
+.trigger-settings-panel,
+.input-panel {
+  padding: 9px;
+  position: static;
+}
+
+.trigger-settings-panel .plain-section:last-child {
+  padding-bottom: 0;
+}
+
+.input-panel .plot-header {
+  margin-bottom: 0;
+}
+
+.input-plot-panel {
+  width: 100%;
+  height: 330px;
+  min-height: 300px;
+  overflow: visible;
+  background: #fff;
+}
+
+.plot-empty-state {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  background: #fbfdff;
+}
+
+.source-note {
+  color: var(--muted);
+  font-size: 0.84rem;
+  margin-bottom: 0;
+}
+
+.source-note a,
+.about-card a {
+  color: var(--navy-2);
+  font-weight: 750;
+}
+
+.detailed-paper-list {
+  display: grid;
+  gap: 0;
+  padding-left: 28px;
+}
+
+.detailed-paper-list li {
+  padding: 10px 4px 12px 2px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.detailed-paper-list li:last-child {
+  border-bottom: none;
+}
+
+.paper-meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.tool-note {
+  border-left: 4px solid var(--teal);
+}
+
+@media (max-width: 1180px) {
+  .run-layout.three-panel-layout {
+    grid-template-columns: minmax(210px, 0.9fr) minmax(250px, 1.1fr);
+  }
+  .output-panel {
+    grid-column: 1 / -1;
+  }
+  .run-control-column {
+    position: static;
+  }
+}
+
+@media (max-width: 780px) {
+  .run-layout.three-panel-layout {
+    grid-template-columns: 1fr;
+  }
+  .output-panel {
+    grid-column: auto;
+  }
+  .input-plot-panel {
+    height: 360px;
+  }
+}

@@ -1,6 +1,3 @@
-const WINDMI_SCRIPT_VERSION = "pad-fix-20260708";
-console.info("WINDMI script", WINDMI_SCRIPT_VERSION);
-
 const selectors = {};
 let latestRun = null;
 let syncInProgress = false;
@@ -17,6 +14,8 @@ const WINDMI_OUTPUT_META = [
 ];
 
 const DEFAULT_OUTPUT_KEYS = new Set(["I", "I1"]);
+const WINDMI_SUPPORTED_START = new Date(Date.UTC(1998, 0, 1, 0, 0, 0));
+const WINDMI_SUPPORTED_END = new Date(Date.UTC(2022, 11, 31, 23, 59, 0));
 
 window.addEventListener("DOMContentLoaded", () => {
   cacheSelectors();
@@ -33,7 +32,7 @@ function cacheSelectors() {
     "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours",
     "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
     "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "exportPlotBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
-    "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotStack", "outputChecklist", "outputSelectionMessage"
+    "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotStack", "inputPlot", "outputChecklist", "outputSelectionMessage"
   ];
 
   ids.forEach(id => selectors[id] = document.getElementById(id));
@@ -254,6 +253,8 @@ function resetDefaults() {
   selectors.maxGapMinutes.value = "120";
   selectors.dataPathPattern.value = "data/omni_{year}.csv";
   setDefaultTimes();
+  clearInputPlot();
+  if (selectors.plotStack) selectors.plotStack.innerHTML = "";
   showView("runView");
   setStatus("Setup restored.", "neutral");
 }
@@ -275,8 +276,11 @@ function showView(viewId) {
     getActivePlotDivs().forEach(el => {
       if (el && window.Plotly) Plotly.Plots.resize(el);
     });
-    if (viewId === "aboutWindmiView" && window.MathJax?.typesetPromise) {
-      window.MathJax.typesetPromise([document.getElementById("aboutWindmiView")]).catch(() => {});
+    if (selectors.inputPlot?.classList.contains("js-plotly-plot") && window.Plotly) {
+      Plotly.Plots.resize(selectors.inputPlot);
+    }
+    if (viewId === "windmiEquationsView" && window.MathJax?.typesetPromise) {
+      window.MathJax.typesetPromise([document.getElementById("windmiEquationsView")]).catch(() => {});
     }
   }, 80);
 }
@@ -316,6 +320,11 @@ function shiftDateRange(direction) {
   const durationMs = end.getTime() - start.getTime();
   const newStart = new Date(start.getTime() + direction * durationMs);
   const newEnd = new Date(end.getTime() + direction * durationMs);
+
+  if (newStart < WINDMI_SUPPORTED_START || newEnd > WINDMI_SUPPORTED_END) {
+    setStatus("The shifted range must remain between Jan 1, 1998 and Dec 31, 2022 (UTC).", "warning");
+    return;
+  }
 
   selectors.startTime.value = toDatetimeLocalValueUTC(newStart);
   selectors.endTime.value = toDatetimeLocalValueUTC(newEnd);
@@ -358,6 +367,7 @@ async function runModel() {
     if (!start || !end || end <= start) {
       throw new Error("Please enter a valid UTC start and end time. End time must be after start time.");
     }
+    validateSupportedDateRange(start, end);
 
     const source = selectedDataSource();
     setStatus("Preparing data...", "neutral");
@@ -374,6 +384,12 @@ async function runModel() {
     if (!loadInfo.rows.length) {
       throw new Error("No valid OMNI rows were found in this interval after cleaning missing values.");
     }
+
+    const inputRows = loadInfo.rows.filter(row => row.time >= start && row.time <= end);
+    if (!inputRows.length) {
+      throw new Error("No valid OMNI input rows fall inside the selected plotting interval.");
+    }
+    plotWindmiInput(inputRows);
 
     appendStatus(`Solving WINDMI using ${loadInfo.rows.length.toLocaleString()} OMNI rows...`, "neutral");
 
@@ -400,6 +416,7 @@ async function runModel() {
       solution,
       triggerMode,
       outputKeys,
+      inputRows,
       plotted
     };
 
@@ -427,8 +444,139 @@ async function runModel() {
   }
 }
 
+function validateSupportedDateRange(start, end) {
+  if (start < WINDMI_SUPPORTED_START || end > WINDMI_SUPPORTED_END) {
+    throw new Error("The selected UTC range must be between Jan 1, 1998 and Dec 31, 2022.");
+  }
+}
+
+function clearInputPlot() {
+  if (!selectors.inputPlot) return;
+  try {
+    if (window.Plotly && selectors.inputPlot.classList.contains("js-plotly-plot")) {
+      Plotly.purge(selectors.inputPlot);
+    }
+  } catch (_) {}
+  selectors.inputPlot.innerHTML = '<div class="plot-empty-state">Run WINDMI to display V<sub>x</sub> and B<sub>z</sub>.</div>';
+}
+
+function plotWindmiInput(rows) {
+  if (!selectors.inputPlot || !window.Plotly || !rows?.length) return;
+
+  const times = rows.map(row => utcPlotString(row.time));
+  const labels = rows.map(row => formatUtcForHover(row.time));
+  const vx = rows.map(row => row.vx);
+  const bz = rows.map(row => row.bz);
+  const colors = {
+    navy: "#0b3a67",
+    teal: "#0996a8",
+    grid: "#e6edf5",
+    ink: "#172033",
+    muted: "#5f6f82"
+  };
+
+  const traces = [
+    {
+      x: times,
+      y: vx,
+      customdata: labels,
+      xaxis: "x",
+      yaxis: "y",
+      type: "scatter",
+      mode: "lines",
+      name: "Vₓ",
+      line: { color: colors.navy, width: 1.8 },
+      hovertemplate: "%{customdata}<br>Vₓ = %{y:.1f} km/s<extra></extra>"
+    },
+    {
+      x: times,
+      y: bz,
+      customdata: labels,
+      xaxis: "x2",
+      yaxis: "y2",
+      type: "scatter",
+      mode: "lines",
+      name: "B_z",
+      line: { color: colors.teal, width: 1.8 },
+      hovertemplate: "%{customdata}<br>B_z = %{y:.2f} nT<extra></extra>"
+    }
+  ];
+
+  const commonX = {
+    type: "date",
+    domain: [0, 1],
+    showgrid: true,
+    gridcolor: colors.grid,
+    zeroline: false,
+    showline: false,
+    ticks: "outside",
+    tickfont: { size: 11, color: colors.ink },
+    automargin: true,
+    tickformat: "%H:%M<br>%b %-d",
+    nticks: 6
+  };
+
+  const layout = {
+    autosize: true,
+    height: Math.max(310, selectors.inputPlot.clientHeight || 330),
+    margin: { l: 58, r: 18, t: 36, b: 48 },
+    paper_bgcolor: "white",
+    plot_bgcolor: "white",
+    hovermode: "x unified",
+    showlegend: false,
+    font: { family: "Inter, Arial, sans-serif", size: 12, color: colors.ink },
+    xaxis: { ...commonX, anchor: "y", showticklabels: false },
+    yaxis: {
+      domain: [0.57, 1],
+      anchor: "x",
+      title: { text: "Vₓ (km/s)", font: { size: 12.5 } },
+      showgrid: true,
+      gridcolor: colors.grid,
+      zeroline: false,
+      ticks: "outside",
+      tickfont: { size: 11 },
+      automargin: true
+    },
+    xaxis2: {
+      ...commonX,
+      anchor: "y2",
+      matches: "x",
+      title: { text: "UT", font: { size: 12.5 } },
+      showticklabels: true
+    },
+    yaxis2: {
+      domain: [0, 0.40],
+      anchor: "x2",
+      title: { text: "B_z (nT)", font: { size: 12.5 } },
+      showgrid: true,
+      gridcolor: colors.grid,
+      zeroline: true,
+      zerolinecolor: "#9aa9bb",
+      zerolinewidth: 1,
+      ticks: "outside",
+      tickfont: { size: 11 },
+      automargin: true
+    },
+    annotations: [
+      { x: 0.5, y: 1.04, xref: "paper", yref: "paper", text: "<b>Solar-wind velocity Vₓ</b>", showarrow: false, font: { size: 13.5, color: colors.navy } },
+      { x: 0.5, y: 0.45, xref: "paper", yref: "paper", text: "<b>IMF B_z (GSM)</b>", showarrow: false, font: { size: 13.5, color: colors.navy } }
+    ]
+  };
+
+  Plotly.react(selectors.inputPlot, traces, layout, {
+    responsive: true,
+    displaylogo: false,
+    displayModeBar: false
+  });
+}
+
+function modelStartForRange(startDate, spinupHours) {
+  const requested = new Date(startDate.getTime() - spinupHours * 3600 * 1000);
+  return requested < WINDMI_SUPPORTED_START ? new Date(WINDMI_SUPPORTED_START) : requested;
+}
+
 function yearsNeeded(startDate, endDate, spinupHours) {
-  const modelStart = new Date(startDate.getTime() - spinupHours * 3600 * 1000);
+  const modelStart = modelStartForRange(startDate, spinupHours);
   const startYear = modelStart.getUTCFullYear();
   const endYear = endDate.getUTCFullYear();
 
@@ -438,7 +586,7 @@ function yearsNeeded(startDate, endDate, spinupHours) {
 }
 
 async function loadOmniFromRepo(start, end, params, spinupHours) {
-  const modelStart = new Date(start.getTime() - spinupHours * 3600 * 1000);
+  const modelStart = modelStartForRange(start, spinupHours);
   const years = yearsNeeded(start, end, spinupHours);
   const rows = [];
   const fileLabels = [];
@@ -469,7 +617,7 @@ async function loadOmniFromRepo(start, end, params, spinupHours) {
 }
 
 async function loadOmniFromUploadedFile(file, start, end, params, spinupHours) {
-  const modelStart = new Date(start.getTime() - spinupHours * 3600 * 1000);
+  const modelStart = modelStartForRange(start, spinupHours);
   setStatus(`Reading uploaded file: ${file.name}...`, "neutral");
   const csvText = await file.text();
   const rows = parseOmniCsvText(csvText, modelStart, end, params);
@@ -725,7 +873,7 @@ function plotRun(run) {
 
   const traces = [];
   const layout = makeCombinedPlotLayout(colors, rowCount, plotHeight);
-  const domains = calculateYDomains(rowCount, 0.065);
+  const domains = calculateYDomains(rowCount, 0.075);
   const palette = [colors.navy, colors.blue, colors.purple, colors.green, colors.amber, colors.rose, colors.slate];
 
   function axisId(prefix, rowNumber) {
@@ -756,7 +904,6 @@ function plotRun(run) {
       tickfont: { size: 13.5, color: colors.ink },
       automargin: true,
       tickformat: "%H:%M<br>%b %-d",
-      hoverformat: "%Y-%m-%d %H:%M UTC",
       nticks: 8,
       showticklabels: showXAxisTickLabels
     };
@@ -778,7 +925,7 @@ function plotRun(run) {
 
     layout.annotations.push({
       x: 0.5,
-      y: domains[rowNumber - 1][1] + 0.006,
+      y: domains[rowNumber - 1][1] + 0.014,
       xref: "paper",
       yref: "paper",
       xanchor: "center",
@@ -885,7 +1032,7 @@ function plotRun(run) {
     layout.legend = {
       orientation: "h",
       x: 0.5,
-      y: 1.055,
+      y: 1.17,
       xanchor: "center",
       yanchor: "bottom",
       font: { size: 13.5 },
@@ -923,7 +1070,7 @@ function makeCombinedPlotLayout(colors, rowCount, plotHeight) {
   return {
     autosize: true,
     height: plotHeight || Math.max(520, 180 * rowCount + 120),
-    margin: { l: 78, r: 74, t: 44, b: 72 },
+    margin: { l: 78, r: 74, t: 86, b: 72 },
     paper_bgcolor: "white",
     plot_bgcolor: "white",
     hovermode: "x unified",
@@ -951,8 +1098,7 @@ function makeBasePlotLayout(colors) {
       ticks: "outside",
       tickfont: { size: 11.5, color: colors.ink },
       automargin: true,
-      tickformat: "%H:%M<br>%b %-d, %Y",
-      hoverformat: "%Y-%m-%d %H:%M UTC"
+      tickformat: "%H:%M<br>%b %-d, %Y"
     },
     yaxis: {
       showgrid: true,
@@ -1071,6 +1217,10 @@ function compactTime(date) {
 }
 
 function formatUtc(date) {
+  return date.toISOString().replace(".000Z", "Z");
+}
+
+function formatUtcForHover(date) {
   const pad = n => String(n).padStart(2, "0");
   return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} UTC`;
 }

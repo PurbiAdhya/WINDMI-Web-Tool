@@ -6,7 +6,7 @@
   <title>WINDMI Web Tool</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=windmi-input-20260711" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script>
@@ -29,7 +29,9 @@
         <button class="nav-link active" type="button" data-view="runView">Run WINDMI</button>
         <button class="nav-link" type="button" data-view="modelParametersView">Model Parameters</button>
         <button class="nav-link" type="button" data-view="advancedSettingsView">Advanced Settings</button>
-        <button class="nav-link" type="button" data-view="aboutWindmiView">About WINDMI</button>
+        <button class="nav-link" type="button" data-view="windmiEquationsView">WINDMI Equations</button>
+        <button class="nav-link" type="button" data-view="recentPapersView">Recent Papers</button>
+        <button class="nav-link" type="button" data-view="aboutToolView">About This Tool</button>
       </nav>
     </aside>
 
@@ -42,73 +44,85 @@
         </header>
 
         <div class="run-layout three-panel-layout">
-          <section class="date-range-panel compact-card" aria-labelledby="dateHeading">
-            <section class="plain-section" aria-labelledby="dateHeading">
+          <div class="run-control-column">
+            <section class="date-range-panel compact-card" aria-labelledby="dateHeading">
               <h2 id="dateHeading">Date range</h2>
               <div class="field">
                 <label for="startTime">Start date and time (UTC)</label>
-                <input id="startTime" type="datetime-local" />
+                <input id="startTime" type="datetime-local" min="1998-01-01T00:00" max="2022-12-31T23:59" />
               </div>
               <div class="field">
                 <label for="endTime">End date and time (UTC)</label>
-                <input id="endTime" type="datetime-local" />
+                <input id="endTime" type="datetime-local" min="1998-01-01T00:00" max="2022-12-31T23:59" />
               </div>
               <div class="range-actions" aria-label="Move date range">
                 <button id="prevRangeBtn" class="secondary" type="button">Previous range</button>
                 <button id="nextRangeBtn" class="secondary" type="button">Next range</button>
               </div>
+
+              <div class="button-row vertical-actions">
+                <button id="runBtn" type="button">Run WINDMI</button>
+                <button id="resetParamsBtn" class="ghost" type="button">Reset to nominal parameters</button>
+                <button id="resetDefaultsBtn" class="ghost" type="button">Reset all setup</button>
+              </div>
+
+              <div id="statusBox" class="status neutral">Ready.</div>
             </section>
 
-            <div class="button-row vertical-actions">
-              <button id="runBtn" type="button">Run WINDMI</button>
-              <button id="resetParamsBtn" class="ghost" type="button">Reset to nominal parameters</button>
-              <button id="resetDefaultsBtn" class="ghost" type="button">Reset all setup</button>
+            <section class="trigger-settings-panel compact-card" aria-labelledby="triggerHeading">
+              <section class="plain-section" aria-labelledby="triggerHeading">
+                <h2 id="triggerHeading">Trigger settings</h2>
+                <fieldset class="trigger-list">
+                  <legend class="sr-only">Trigger mode</legend>
+
+                  <label class="trigger-row no-input">
+                    <span class="radio-label">
+                      <input type="radio" name="icModeRadio" value="off" checked />
+                      <span><strong>Trigger off</strong></span>
+                    </span>
+                  </label>
+
+                  <label class="trigger-row">
+                    <span class="radio-label">
+                      <input type="radio" name="icModeRadio" value="constant" />
+                      <span><strong>Constant I<sub>c</sub></strong></span>
+                    </span>
+                    <span class="side-input inline-side-input">
+                      <span>I<sub>c</sub> (kA)</span>
+                      <input id="icConstant" type="number" step="10" value="200" />
+                    </span>
+                  </label>
+
+                  <label class="trigger-row">
+                    <span class="radio-label">
+                      <input type="radio" name="icModeRadio" value="percentile" />
+                      <span><strong>Variable I<sub>c</sub></strong></span>
+                    </span>
+                    <span class="side-input inline-side-input">
+                      <span>Percentile</span>
+                      <input id="icPercentile" type="number" min="0" max="100" step="1" value="70" />
+                    </span>
+                  </label>
+                </fieldset>
+              </section>
+
+              <section class="plain-section quick-section" aria-labelledby="quickHeading">
+                <h2 id="quickHeading">Quick parameters</h2>
+                <div id="quickParameterGrid" class="quick-parameter-grid one-column"></div>
+              </section>
+            </section>
+          </div>
+
+          <section class="input-panel" aria-labelledby="inputHeading">
+            <div class="plot-header compact-plot-header">
+              <div>
+                <p class="eyebrow">OMNI solar-wind data</p>
+                <h2 id="inputHeading">WINDMI input</h2>
+              </div>
             </div>
-
-            <div id="statusBox" class="status neutral">Ready.</div>
-          </section>
-
-          <section class="run-settings-panel compact-card" aria-label="Trigger settings and quick parameters">
-            <section class="plain-section" aria-labelledby="triggerHeading">
-              <h2 id="triggerHeading">Trigger settings</h2>
-              <fieldset class="trigger-list">
-                <legend class="sr-only">Trigger mode</legend>
-
-                <label class="trigger-row no-input">
-                  <span class="radio-label">
-                    <input type="radio" name="icModeRadio" value="off" checked />
-                    <span><strong>Trigger off</strong></span>
-                  </span>
-                </label>
-
-                <label class="trigger-row">
-                  <span class="radio-label">
-                    <input type="radio" name="icModeRadio" value="constant" />
-                    <span><strong>Constant I<sub>c</sub></strong></span>
-                  </span>
-                  <span class="side-input inline-side-input">
-                    <span>I<sub>c</sub> (kA)</span>
-                    <input id="icConstant" type="number" step="10" value="200" />
-                  </span>
-                </label>
-
-                <label class="trigger-row">
-                  <span class="radio-label">
-                    <input type="radio" name="icModeRadio" value="percentile" />
-                    <span><strong>Variable I<sub>c</sub></strong></span>
-                  </span>
-                  <span class="side-input inline-side-input">
-                    <span>Percentile</span>
-                    <input id="icPercentile" type="number" min="0" max="100" step="1" value="70" />
-                  </span>
-                </label>
-              </fieldset>
-            </section>
-
-            <section class="plain-section" aria-labelledby="quickHeading">
-              <h2 id="quickHeading">Quick parameters</h2>
-              <div id="quickParameterGrid" class="quick-parameter-grid one-column"></div>
-            </section>
+            <div id="inputPlot" class="input-plot-panel" aria-live="polite">
+              <div class="plot-empty-state">Run WINDMI to display V<sub>x</sub> and B<sub>z</sub>.</div>
+            </div>
           </section>
 
           <section class="output-panel" aria-labelledby="plotHeading">
@@ -124,7 +138,6 @@
             </div>
 
             <div id="runSummary" class="run-summary hidden" aria-live="polite"></div>
-
             <div id="plotStack" class="plot-stack"></div>
           </section>
         </div>
@@ -222,20 +235,21 @@
         </section>
       </section>
 
-      <section id="aboutWindmiView" class="view" aria-labelledby="aboutHeading">
+      <section id="windmiEquationsView" class="view" aria-labelledby="equationsPageHeading">
         <header class="page-header compact-header">
-          <p class="eyebrow">Reference</p>
-          <h1 id="aboutHeading">About WINDMI</h1>
-          <p>WINDMI is a low-dimensional nonlinear model of the solar wind–magnetosphere–ionosphere system.</p>
+          <p class="eyebrow">Model reference</p>
+          <h1 id="equationsPageHeading">WINDMI Equations</h1>
+          <p>WINDMI is a low-dimensional, nonlinear representation of energy transfer from the solar wind through the magnetosphere and into the ionosphere.</p>
         </header>
 
-        <section class="card about-card" aria-labelledby="windmiInfoHeading">
-          <h2 id="windmiInfoHeading">What the tool does</h2>
-          <p>The WINDMI Web Tool reads OMNI solar-wind input over a selected UTC interval, computes the rectified solar-wind driving voltage vB<sub>s</sub>, solves the eight-state WINDMI ordinary differential equation system, and plots the selected output variables.</p>
+        <section class="card about-card">
+          <h2>Model overview</h2>
+          <p>The model represents the coupled magnetosphere–ionosphere system as an equivalent electrical network. Inductances, capacitances, conductances, and resistive elements describe energy storage and transfer among the magnetotail, central plasma sheet, field-aligned current systems, ionosphere, and ring current. Solar-wind conditions supply the time-dependent driving voltage.</p>
+          <p class="source-note">Model background: <a href="https://ccmc.gsfc.nasa.gov/models/WINDMI~1.0" target="_blank" rel="noopener">NASA Community Coordinated Modeling Center — WINDMI 1.0</a>.</p>
         </section>
 
         <section class="card about-card" aria-labelledby="equationsHeading">
-          <h2 id="equationsHeading">WINDMI equations</h2>
+          <h2 id="equationsHeading">Eight-state model</h2>
           <div class="equation-list math-equations">
             <div><span class="eq-num">(1)</span> \[ L\frac{dI}{dt}=vB_s(t)-V+M\frac{dI_1}{dt} \]</div>
             <div><span class="eq-num">(2)</span> \[ C\frac{dV}{dt}=I-I_1-I_{ps}-\Sigma V \]</div>
@@ -246,28 +260,68 @@
             <div><span class="eq-num">(7)</span> \[ L_2\frac{dI_2}{dt}=V_1-(R_{prc}+R_{A2})I_2 \]</div>
             <div><span class="eq-num">(8)</span> \[ \frac{dW_{rc}}{dt}=R_{prc}I_2^2+\frac{pVA_{eff}}{B_{tr}L_y}-\frac{W_{rc}}{\tau_{rc}} \]</div>
           </div>
-          <h3>Input and trigger functions</h3>
+
+          <h3>Solar-wind input and trigger functions</h3>
           <div class="equation-list compact-equations math-equations">
             <div><span class="eq-num">(9)</span> \[ vB_s=\begin{cases}V_0+L_y|v_x||B_z|, & B_z<0,\\ V_0, & B_z\ge 0.\end{cases} \]</div>
             <div><span class="eq-num">(10)</span> \[ \theta(I-I_c)=\frac{1}{2}\left[1+\tanh\left(\frac{I-I_c}{\Delta I}\right)\right] \]</div>
           </div>
         </section>
+      </section>
 
-        <section class="card about-card" aria-labelledby="papersHeading">
-          <h2 id="papersHeading">Recent and related papers/work</h2>
-          <ol class="paper-list">
-            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2024SW003960" target="_blank" rel="noopener">Adhya, Spencer, &amp; Kayode-Adeoye — Substorm Identification With the WINDMI Magnetosphere-Ionosphere Nonlinear Physics Model</a>, <em>Space Weather</em>, 2025.</li>
-            <li><a href="https://ieeexplore.ieee.org/document/10500052/" target="_blank" rel="noopener">Kayode-Adeoye et al. — Statistical Analysis of Substorm Events Using the WINDMI Model</a>, IEEE, 2024.</li>
-            <li><a href="https://jagworks.southalabama.edu/theses_diss/193/" target="_blank" rel="noopener">Yasmin — Geomagnetic Substorms Prediction Model Using Combined Physics-Based and Data-Driven Approaches</a>, thesis, University of South Alabama, 2024.</li>
-            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/abs/10.1029/2018JA025582" target="_blank" rel="noopener">Spencer et al. — Global Energy Dynamics During Substorms Using Satellite Observations and the WINDMI Model</a>, <em>Journal of Geophysical Research: Space Physics</em>, 2019.</li>
-            <li><a href="https://link.springer.com/article/10.1186/s40623-018-0882-9" target="_blank" rel="noopener">Spencer et al. — The Dynamics of Geomagnetic Substorms With the WINDMI Model</a>, <em>Earth, Planets and Space</em>, 2018.</li>
+      <section id="recentPapersView" class="view" aria-labelledby="recentPapersHeading">
+        <header class="page-header compact-header">
+          <p class="eyebrow">Research literature</p>
+          <h1 id="recentPapersHeading">Recent Papers</h1>
+          <p>A curated, newest-to-oldest list of directly relevant WINDMI publications and closely related research outputs.</p>
+        </header>
+
+        <section class="card about-card">
+          <ol class="paper-list detailed-paper-list">
+            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2024SW003960" target="_blank" rel="noopener">Substorm Identification With the WINDMI Magnetosphere–Ionosphere Nonlinear Physics Model</a><span class="paper-meta">P. Adhya, E. A. Spencer, and M. Kayode-Adeoye · <em>Space Weather</em> · 2025</span></li>
+            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2023JA032115" target="_blank" rel="noopener">Determination of Outer Radiation Belt MeV Electron Energization Rates and Delayed Response Times to Solar Wind Driving During Geomagnetic Storms</a><span class="paper-meta">P. Srinivas and E. Spencer · <em>Journal of Geophysical Research: Space Physics</em> · 2024</span></li>
+            <li><a href="https://ieeexplore.ieee.org/document/10500052" target="_blank" rel="noopener">Statistical Analysis of Substorm Events Using the WINDMI Model</a><span class="paper-meta">M. Kayode-Adeoye, P. Adhya, and E. Spencer · IEEE SoutheastCon · 2024</span></li>
+            <li><a href="https://jagworks.southalabama.edu/theses_diss/193/" target="_blank" rel="noopener">Geomagnetic Substorms Prediction Model Using Combined Physics-Based and Deep Learning Modeling Techniques</a><span class="paper-meta">R. Yasmin · M.S. thesis, University of South Alabama · 2024</span></li>
+            <li><a href="https://jagworks.southalabama.edu/theses_diss/179/" target="_blank" rel="noopener">Initiation Criteria for the Onset of Geomagnetic Substorms Using the WINDMI Model</a><span class="paper-meta">M. M. Kayode-Adeoye · M.S. thesis, University of South Alabama · 2023</span></li>
+            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/abs/10.1029/2018JA025582" target="_blank" rel="noopener">Global Energy Dynamics During Substorms on 9 March 2008 and 26 February 2008 Using Satellite Observations and the WINDMI Model</a><span class="paper-meta">E. Spencer et al. · <em>Journal of Geophysical Research: Space Physics</em> · 2019</span></li>
+            <li><a href="https://link.springer.com/article/10.1186/s40623-018-0882-9" target="_blank" rel="noopener">The Dynamics of Geomagnetic Substorms With the WINDMI Model</a><span class="paper-meta">E. Spencer, S. K. Vadepu, P. Srinivas, S. Patra, and W. Horton · <em>Earth, Planets and Space</em> · 2018</span></li>
+            <li><a href="https://npg.copernicus.org/articles/20/429/2013/" target="_blank" rel="noopener">The Effect of Nonlinear Ionospheric Conductivity Enhancement on Magnetospheric Substorms</a><span class="paper-meta">E. Spencer and S. Patra · <em>Nonlinear Processes in Geophysics</em> · 2013</span></li>
+            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2011JA016780" target="_blank" rel="noopener">Influence of Solar Wind–Magnetosphere Coupling Functions on the Dst Index</a><span class="paper-meta">E. Spencer et al. · <em>Journal of Geophysical Research</em> · 2011</span></li>
+            <li><a href="https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2010JA015824" target="_blank" rel="noopener">Study of Dst/Ring Current Recovery Times Using the WINDMI Model</a><span class="paper-meta">S. Patra, E. Spencer, W. Horton, and J. Sojka · <em>Journal of Geophysical Research</em> · 2011</span></li>
           </ol>
         </section>
       </section>
+
+      <section id="aboutToolView" class="view" aria-labelledby="aboutToolHeading">
+        <header class="page-header compact-header">
+          <p class="eyebrow">Project information</p>
+          <h1 id="aboutToolHeading">About This Tool</h1>
+          <p>A browser-based interface for running the WINDMI model with OMNI solar-wind data.</p>
+        </header>
+
+        <section class="card about-card">
+          <h2>Development of the web tool</h2>
+          <p>The WINDMI Web Tool was developed through a collaboration among <strong>Dr. Soumyajit Dey</strong> and <strong>Dr. Edmund Spencer</strong> at the University of South Alabama, and <strong>Dr. Purbi Adhya</strong>, a former postdoctoral fellow in Dr. Spencer’s research group who is now a faculty member at Spring Hill College. The interface is designed to make the model easier to run, inspect, and compare across selected UTC intervals without requiring a local scientific-computing installation.</p>
+          <p>Dr. Dey developed the Python computational backend that supports the current tool workflow. Dr. Adhya contributed her experience applying WINDMI to geomagnetic-substorm identification and model evaluation, while Dr. Spencer provided longstanding model expertise, scientific guidance, and continuity across successive stages of WINDMI development.</p>
+        </section>
+
+        <section class="card about-card">
+          <h2>Model lineage</h2>
+          <p>The core WINDMI framework and its foundational model equations grew from work led by <strong>Dr. Wendell Horton</strong> and collaborators at the University of Texas at Austin. Dr. Horton supervised Dr. Spencer’s doctoral research, which focused on geomagnetic storms and substorms with WINDMI. Dr. Spencer subsequently continued working with the model for many years, extending its formulation and applying it to a broad range of storm, substorm, current-system, and space-weather studies.</p>
+          <p>Dr. Adhya later advanced the model’s use for substorm analysis during her postdoctoral appointment under Dr. Spencer. The current phase, led in part by Dr. Dey, carries that development forward through a Python-based computational implementation and this accessible web interface.</p>
+          <p class="source-note">Institutional references: <a href="https://www.southalabama.edu/colleges/engineering/ece/spencer.html" target="_blank" rel="noopener">Dr. Edmund Spencer, University of South Alabama</a> · <a href="https://www.shc.edu/about-spring-hill-jesuit-college/spring-hill-college-administration/spring-hill-college-faculty-directory/" target="_blank" rel="noopener">Spring Hill College faculty directory</a>.</p>
+        </section>
+
+        <section class="card about-card tool-note">
+          <h2>Use and interpretation</h2>
+          <p>This tool is intended for research exploration, education, and reproducible comparison of WINDMI runs. Users conducting publication-quality analysis should document parameter choices, data handling, and initial conditions, and should compare results with established reference runs.</p>
+        </section>
+      </section>
+
     </main>
   </div>
 
-  <script src="windmi.js"></script>
-  <script src="script.js?v=pad-fix-20260708"></script>
+  <script src="windmi.js?v=windmi-input-20260711"></script>
+  <script src="script.js?v=windmi-input-20260711"></script>
 </body>
 </html>
