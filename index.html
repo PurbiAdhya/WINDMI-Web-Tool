@@ -6,7 +6,7 @@
   <title>WINDMI Web Tool</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/icon-192.png" />
-  <link rel="stylesheet" href="style.css?v=windmi-input-20260711" />
+  <link rel="stylesheet" href="style.css?v=layout-20260711b" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script>
@@ -47,13 +47,15 @@
           <div class="run-control-column">
             <section class="date-range-panel compact-card" aria-labelledby="dateHeading">
               <h2 id="dateHeading">Date range</h2>
-              <div class="field">
-                <label for="startTime">Start date and time (UTC)</label>
-                <input id="startTime" type="datetime-local" min="1998-01-01T00:00" max="2022-12-31T23:59" />
-              </div>
-              <div class="field">
-                <label for="endTime">End date and time (UTC)</label>
-                <input id="endTime" type="datetime-local" min="1998-01-01T00:00" max="2022-12-31T23:59" />
+              <div class="date-field-grid">
+                <div class="field">
+                  <label for="startTime">Start date and time (UTC)</label>
+                  <input id="startTime" type="datetime-local" min="1998-01-01T00:00" max="2022-12-31T23:59" />
+                </div>
+                <div class="field">
+                  <label for="endTime">End date and time (UTC)</label>
+                  <input id="endTime" type="datetime-local" min="1998-01-01T00:00" max="2022-12-31T23:59" />
+                </div>
               </div>
               <div class="range-actions" aria-label="Move date range">
                 <button id="prevRangeBtn" class="secondary" type="button">Previous range</button>
@@ -66,7 +68,6 @@
                 <button id="resetDefaultsBtn" class="ghost" type="button">Reset all setup</button>
               </div>
 
-              <div id="statusBox" class="status neutral">Ready.</div>
             </section>
 
             <section class="trigger-settings-panel compact-card" aria-labelledby="triggerHeading">
@@ -110,6 +111,8 @@
                 <h2 id="quickHeading">Quick parameters</h2>
                 <div id="quickParameterGrid" class="quick-parameter-grid one-column"></div>
               </section>
+
+              <div id="statusBox" class="status neutral">Ready.</div>
             </section>
           </div>
 
@@ -322,6 +325,6 @@
   </div>
 
   <script src="windmi.js?v=windmi-input-20260711"></script>
-  <script src="script.js?v=windmi-input-20260711"></script>
+  <script src="script.js?v=layout-20260711b"></script>
 </body>
 </html>

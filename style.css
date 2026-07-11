@@ -727,3 +727,56 @@ sub { line-height: 0; }
     height: 360px;
   }
 }
+
+
+/* 2026-07-11: date fields side-by-side and equal input/output columns */
+.run-layout.three-panel-layout {
+  grid-template-columns: minmax(300px, 0.78fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.date-field-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.date-field-grid .field {
+  min-width: 0;
+}
+
+.date-field-grid label {
+  line-height: 1.25;
+}
+
+.trigger-settings-panel > .status {
+  margin-top: 8px;
+}
+
+@media (max-width: 1180px) {
+  .run-layout.three-panel-layout {
+    grid-template-columns: minmax(290px, 0.8fr) minmax(0, 1fr);
+  }
+  .input-panel,
+  .output-panel {
+    grid-column: 2;
+  }
+  .output-panel {
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 780px) {
+  .run-layout.three-panel-layout {
+    grid-template-columns: 1fr;
+  }
+  .input-panel,
+  .output-panel {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .date-field-grid {
+    grid-template-columns: 1fr;
+  }
+}

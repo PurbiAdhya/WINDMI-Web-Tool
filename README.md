@@ -49,3 +49,10 @@ The expected columns are a UTC time column, GSM `Bz`, and GSE `Vx`. The current 
 ## GitHub Pages
 
 Commit the application files and yearly CSV files to the repository, then enable **Settings → Pages → Deploy from a branch → main → root**.
+
+## Interface update (July 2026)
+
+- Start and end UTC fields appear side by side on desktop.
+- The run status message appears beneath Trigger settings.
+- WINDMI input and output panels use equal widths.
+- IMF Bz labels render with z as a subscript.

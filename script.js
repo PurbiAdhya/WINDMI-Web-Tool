@@ -496,9 +496,9 @@ function plotWindmiInput(rows) {
       yaxis: "y2",
       type: "scatter",
       mode: "lines",
-      name: "B_z",
+      name: "B<sub>z</sub>",
       line: { color: colors.teal, width: 1.8 },
-      hovertemplate: "%{customdata}<br>B_z = %{y:.2f} nT<extra></extra>"
+      hovertemplate: "%{customdata}<br>B<sub>z</sub> = %{y:.2f} nT<extra></extra>"
     }
   ];
 
@@ -547,7 +547,7 @@ function plotWindmiInput(rows) {
     yaxis2: {
       domain: [0, 0.40],
       anchor: "x2",
-      title: { text: "B_z (nT)", font: { size: 12.5 } },
+      title: { text: "B<sub>z</sub> (nT)", font: { size: 12.5 } },
       showgrid: true,
       gridcolor: colors.grid,
       zeroline: true,
@@ -559,7 +559,7 @@ function plotWindmiInput(rows) {
     },
     annotations: [
       { x: 0.5, y: 1.04, xref: "paper", yref: "paper", text: "<b>Solar-wind velocity Vₓ</b>", showarrow: false, font: { size: 13.5, color: colors.navy } },
-      { x: 0.5, y: 0.45, xref: "paper", yref: "paper", text: "<b>IMF B_z (GSM)</b>", showarrow: false, font: { size: 13.5, color: colors.navy } }
+      { x: 0.5, y: 0.45, xref: "paper", yref: "paper", text: "<b>IMF B<sub>z</sub> (GSM)</b>", showarrow: false, font: { size: 13.5, color: colors.navy } }
     ]
   };
 
