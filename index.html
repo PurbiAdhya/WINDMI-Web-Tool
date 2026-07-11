@@ -122,6 +122,9 @@
                 <p class="eyebrow">OMNI solar-wind data</p>
                 <h2 id="inputHeading">WINDMI input</h2>
               </div>
+              <div class="plot-actions">
+                <button id="exportInputPlotBtn" class="secondary" type="button" disabled>Export input PNG</button>
+              </div>
             </div>
             <div id="inputPlot" class="input-plot-panel" aria-live="polite">
               <div class="plot-empty-state">Run WINDMI to display V<sub>x</sub> and B<sub>z</sub>.</div>
@@ -303,16 +306,9 @@
         </header>
 
         <section class="card about-card">
-          <h2>Development of the web tool</h2>
-          <p>The WINDMI Web Tool was developed through a collaboration among <strong>Dr. Soumyajit Dey</strong> and <strong>Dr. Edmund Spencer</strong> at the University of South Alabama, and <strong>Dr. Purbi Adhya</strong>, a former postdoctoral fellow in Dr. Spencer’s research group who is now a faculty member at Spring Hill College. The interface is designed to make the model easier to run, inspect, and compare across selected UTC intervals without requiring a local scientific-computing installation.</p>
-          <p>Dr. Dey developed the Python computational backend that supports the current tool workflow. Dr. Adhya contributed her experience applying WINDMI to geomagnetic-substorm identification and model evaluation, while Dr. Spencer provided longstanding model expertise, scientific guidance, and continuity across successive stages of WINDMI development.</p>
-        </section>
-
-        <section class="card about-card">
-          <h2>Model lineage</h2>
-          <p>The core WINDMI framework and its foundational model equations grew from work led by <strong>Dr. Wendell Horton</strong> and collaborators at the University of Texas at Austin. Dr. Horton supervised Dr. Spencer’s doctoral research, which focused on geomagnetic storms and substorms with WINDMI. Dr. Spencer subsequently continued working with the model for many years, extending its formulation and applying it to a broad range of storm, substorm, current-system, and space-weather studies.</p>
-          <p>Dr. Adhya later advanced the model’s use for substorm analysis during her postdoctoral appointment under Dr. Spencer. The current phase, led in part by Dr. Dey, carries that development forward through a Python-based computational implementation and this accessible web interface.</p>
-          <p class="source-note">Institutional references: <a href="https://www.southalabama.edu/colleges/engineering/ece/spencer.html" target="_blank" rel="noopener">Dr. Edmund Spencer, University of South Alabama</a> · <a href="https://www.shc.edu/about-spring-hill-jesuit-college/spring-hill-college-administration/spring-hill-college-faculty-directory/" target="_blank" rel="noopener">Spring Hill College faculty directory</a>.</p>
+          <h2>Development</h2>
+          <p>The WINDMI Web Tool was developed by Dr. Soumyajit Dey and Dr. Edmund Spencer at the University of South Alabama, together with Dr. Purbi Adhya at Spring Hill College. It provides an accessible browser-based workflow for running WINDMI with OMNI solar-wind data and reviewing the resulting model outputs.</p>
+          <p>The tool builds on the WINDMI framework initiated by Dr. Wendell Horton and subsequently extended and applied by Dr. Spencer and collaborators. Dr. Dey developed the current computational backend, while Dr. Adhya contributed experience in WINDMI-based substorm analysis and model evaluation.</p>
         </section>
 
         <section class="card about-card tool-note">
@@ -325,6 +321,6 @@
   </div>
 
   <script src="windmi.js?v=windmi-input-20260711"></script>
-  <script src="script.js?v=layout-20260711b"></script>
+  <script src="script.js?v=5min-vx-bz-20260711"></script>
 </body>
 </html>

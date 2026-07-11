@@ -31,7 +31,7 @@ function cacheSelectors() {
   const ids = [
     "fileInput", "uploadFieldWrap", "startTime", "endTime", "spinupHours",
     "icConstant", "icPercentile", "parameterGrid", "quickParameterGrid", "initialGrid", "interpolateMissing",
-    "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "exportPlotBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
+    "maxGapMinutes", "dataPathPattern", "runBtn", "exportBtn", "exportPlotBtn", "exportInputPlotBtn", "resetDefaultsBtn", "resetParamsBtn", "resetParamsBtnTop",
     "prevRangeBtn", "nextRangeBtn", "statusBox", "runSummary", "plotStack", "inputPlot", "outputChecklist", "outputSelectionMessage"
   ];
 
@@ -210,6 +210,7 @@ function wireEvents() {
   selectors.runBtn.addEventListener("click", runModel);
   selectors.exportBtn.addEventListener("click", exportLatestRun);
   selectors.exportPlotBtn.addEventListener("click", exportPlotImage);
+  if (selectors.exportInputPlotBtn) selectors.exportInputPlotBtn.addEventListener("click", exportInputPlotImage);
   if (selectors.prevRangeBtn) selectors.prevRangeBtn.addEventListener("click", () => shiftDateRange(-1));
   if (selectors.nextRangeBtn) selectors.nextRangeBtn.addEventListener("click", () => shiftDateRange(1));
   selectors.resetDefaultsBtn.addEventListener("click", resetDefaults);
@@ -355,6 +356,7 @@ async function runModel() {
     selectors.runBtn.disabled = true;
     selectors.exportBtn.disabled = true;
     selectors.exportPlotBtn.disabled = true;
+    if (selectors.exportInputPlotBtn) selectors.exportInputPlotBtn.disabled = true;
     latestRun = null;
 
     const start = parseUtcDatetimeLocal(selectors.startTime.value);
@@ -425,6 +427,7 @@ async function runModel() {
     plotRun(latestRun);
     selectors.exportBtn.disabled = false;
     selectors.exportPlotBtn.disabled = false;
+    if (selectors.exportInputPlotBtn) selectors.exportInputPlotBtn.disabled = false;
 
     setStatus(
       `Done.\n` +
@@ -754,10 +757,20 @@ function finalizeOmniRows(rows) {
   if (selectors.interpolateMissing.checked) {
     interpolateField(sorted, "bz", maxGapMinutes);
     interpolateField(sorted, "vx", maxGapMinutes);
-    sorted.forEach(row => {
-      row.vbs = computeVbs(row.bz, row.vx, collectParams());
-    });
   }
+
+  // Apply a centered 5-minute moving average to the 1-minute OMNI Vx and Bz
+  // series before calculating vBs and running WINDMI. Missing values remain
+  // missing when interpolation is disabled.
+  const smoothedBz = runningAverage(sorted.map(row => row.bz), 5);
+  const smoothedVx = runningAverage(sorted.map(row => row.vx), 5);
+  const params = collectParams();
+
+  sorted.forEach((row, index) => {
+    row.bz = Number.isFinite(row.bz) ? smoothedBz[index] : NaN;
+    row.vx = Number.isFinite(row.vx) ? smoothedVx[index] : NaN;
+    row.vbs = computeVbs(row.bz, row.vx, params);
+  });
 
   const cleaned = sorted.filter(row =>
     Number.isFinite(row.bz) && Number.isFinite(row.vx) && Number.isFinite(row.vbs)
@@ -841,7 +854,7 @@ function plotRun(run) {
   const plotTimes = rows.map(row => utcPlotString(row.time));
   const utcLabels = rows.map(row => formatUtc(row.time));
   const icKA = run.solution.meta.ic / 1000;
-  const vbsSmoothedKV = runningAverage(rows.map(row => row.vbs / 1000), 5);
+  const vbsSmoothedKV = rows.map(row => row.vbs / 1000);
   const outputKeys = run.outputKeys && run.outputKeys.length ? run.outputKeys : getValidatedOutputSelection();
 
   if (outputKeys.length < 1 || outputKeys.length > 4) {
@@ -1027,19 +1040,8 @@ function plotRun(run) {
     }
   });
 
-  layout.showlegend = outputKeys.includes("I");
-  if (layout.showlegend) {
-    layout.legend = {
-      orientation: "h",
-      x: 0.5,
-      y: 1.17,
-      xanchor: "center",
-      yanchor: "bottom",
-      font: { size: 13.5 },
-      bgcolor: "rgba(255,255,255,0.78)",
-      borderwidth: 0
-    };
-  }
+  // Keep the WINDMI output figure uncluttered. Trace names remain available in hover labels.
+  layout.showlegend = false;
 
   const config = {
     responsive: true,
@@ -1237,6 +1239,32 @@ function formatDateRange(start, end) {
   return `${start.toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}–${end.toLocaleDateString(undefined, { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" })}`;
 }
 
+
+async function exportInputPlotImage() {
+  if (!latestRun || !latestRun.inputRows?.length || !selectors.inputPlot) return;
+
+  try {
+    selectors.exportInputPlotBtn.disabled = true;
+    selectors.exportInputPlotBtn.textContent = "Preparing PNG...";
+
+    const url = await Plotly.toImage(selectors.inputPlot, {
+      format: "png",
+      width: Math.max(900, selectors.inputPlot.clientWidth || 900),
+      height: Math.max(500, selectors.inputPlot.clientHeight || 500),
+      scale: 2
+    });
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `windmi_input_${formatUtc(latestRun.start).slice(0, 10)}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } finally {
+    selectors.exportInputPlotBtn.disabled = false;
+    selectors.exportInputPlotBtn.textContent = "Export input PNG";
+  }
+}
 
 async function exportPlotImage() {
   if (!latestRun || !latestRun.plotted.length) return;

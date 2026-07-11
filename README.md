@@ -56,3 +56,10 @@ Commit the application files and yearly CSV files to the repository, then enable
 - The run status message appears beneath Trigger settings.
 - WINDMI input and output panels use equal widths.
 - IMF Bz labels render with z as a subscript.
+
+## Plot export update
+
+- The WINDMI input panel includes an **Export input PNG** button.
+- The WINDMI output plot intentionally hides its legend to leave more room for the subplots; variable names remain in subplot headings and hover labels.
+
+- OMNI Vx and Bz are smoothed with a centered 5-minute moving average after optional interpolation and before vBs calculation and model integration.
